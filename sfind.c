@@ -30,7 +30,7 @@ int main (int argc, char *argv[], char *envp[])
     else //In case the param 1 isn't none of the previous
       write(STDOUT_FILENO, "Type 'sfind -help' for instructions\n", 36);
   }
-  else
+  else //In case no argument was found
     write(STDOUT_FILENO, "Type 'sfind -help' for instructions\n", 36);
 
   return 0;

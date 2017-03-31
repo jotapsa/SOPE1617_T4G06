@@ -5,6 +5,7 @@
 #include <limits.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include "finder.h"
 
 #define MAX_STR_LEN 256
 #define OPTION 1
@@ -19,48 +20,62 @@ char* extract_dir(char *str);
 int main (int argc, char *argv[], char *envp[])
 {
    char dir[PATH_MAX + 1];
-   
+
    switch(argc) //==2 (help invoked) || == 5 (delete or print) || == 8 (exec)
-   { 	
+   {
    	case 1:  //in case user does not insert a single option
    	{
    		write(STDOUT_FILENO, "Type 'sfind -help' for instructions\n", 36);
-   		
+
    		return 0;
    	}
-   	
-   	case 2: 
+
+   	case 2:
    	{
    		if(strcmp(argv[1], "-help") == 0) //in case user asks for help
    			print_help_menu();
    		else
-   			write(STDOUT_FILENO, "Type 'sfind -help' for instructions\n", 36);	
-   		
+   			write(STDOUT_FILENO, "Type 'sfind -help' for instructions\n", 36);
+
    		return 0;
    	}
    	case 5: //in case user wants -print or -delete
    	{
    		strcpy(dir, extract_dir(argv[1]));
-   		
+
    		if(strcmp(dir, "ERROR") == 0)
-   			printf("%s is an invalid dir\n", argv[1]);
+      {
+        printf("%s is an invalid dir\n", argv[1]);
+        return 1;
+      }
    		else
-   			printf("diretorio:\t%s\n", dir);
-   		
+   			printf("dir:\t%s\n", dir);
+
+      if(!(test_arg(argv[2], OPTION) && test_arg(argv[4], ACTION)))//checks if OPTION and ACTION are valid
+      {
+        printf("%s ou %s ARE NOT valid\n", argv[2], argv[4]);
+
+        return 1;
+      }
+      else
+      {
+        printf("Now searching %s\n", argv[3]);
+      }
+
    		return 0;
    	}
-   	
+
    	case 8: //in case user wants -exec
    	{
-   		printf("Caso exec\n");
-   		
+   		printf("Case exec\n");
+
    		return 0;
    	}
-   	
+
    	default:
    	{
    		write(STDOUT_FILENO, "Type 'sfind -help' for instructions\n", 36);
-   		
+
    		return 0;
    	}
    }
@@ -113,15 +128,15 @@ char* extract_dir(char *str) //it will return the directory to start seaching
 	char buff[PATH_MAX + 1];
 	char* dir;
 	struct stat dir_inf;
-	
+
 	if(strcmp(str, "~") == 0) //search in the home directory
 	{
 		strcpy(buff,"/home/");
-		
+
 		strcat(buff,getenv("username"));
-		
+
 		strcpy(dir,buff);
-		
+
 		return dir;
 	}
 	else if(strcmp(str, ".") == 0) // . means that is to search in the current dir
@@ -140,13 +155,11 @@ char* extract_dir(char *str) //it will return the directory to start seaching
 	}
 	else //means that the user wants to search in a diferent non-related directoty
 	{
-		if(lstat(str, &dir_inf) == -1) 
+		if(lstat(str, &dir_inf) == -1)
 			return "ERROR";
-		else	
+		else
 			return str;
 	}
-	
+
 	return "ERROR";
 }
-
-

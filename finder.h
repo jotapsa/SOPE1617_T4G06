@@ -20,11 +20,13 @@
 
 void print_help_menu ();
 
+void sigint_handler(int signal);
+
 int test_arg(char *arg, int op);
 
 char* extract_dir(char *str);
 
-char* previous_dir(char *curr, int size);
+char* get_path(char *dir, char *sub);
 
 int seacher (char *dir, char *option, char *filename, char *action);
 

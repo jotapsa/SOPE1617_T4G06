@@ -1,5 +1,21 @@
 #include "finder.h"
 
+void sigint_handler(int signo)
+{
+  char resp;
+
+  while(resp != 'y' && resp != 'Y' && resp != 'n' && resp != 'N' )
+  {
+    printf("Are you sure you want to terminate (Y/N)?\n");
+    scanf("%c", &resp);
+  }
+
+  if(resp == 'y' || resp == 'Y')
+    exit(0);
+
+  return;
+}
+
 void print_help_menu () //Prints the instructions for usage
 {
   char output[MAX_STR_LEN];
@@ -88,12 +104,12 @@ int seacher (char *dir, char *option, char *filename, char *action)
 {
   if(strcmp(option, "-name") == 0)
   {
-    if(search_for_name(dir, filename, PRINT) == 0)
-    {
-      printf("sucesso\n");
+    if(search_for_name(dir, filename, PRINT)  == 0)
       return 0;
-    }
+    else
+      return 1;
   }
+
   else if(strcmp(option, "-type") == 0)
   {
 
@@ -109,78 +125,75 @@ int seacher (char *dir, char *option, char *filename, char *action)
 int search_for_name (char *dir, char *filename, int op)
 {
   DIR *directory;
-  struct dirent *dir_info;
+  struct dirent *sub;
   struct stat dir_stat;
-  pid_t pid, pidSon;
+  pid_t pid;
   int status;
+  char *path;
 
   if((directory = opendir(dir)) == NULL)
   {
     printf("Could not open %s\n", dir);
-    return -1;
+    return 1;
   }
 
   switch (op)
   {
-    case PRINT:
+    case PRINT: //In case we must print the found files
     {
       chdir(dir);
 
-      while((dir_info = readdir(directory)) != NULL)
+      while((sub = readdir(directory)) != NULL)
       {
-        stat(dir_info->d_name, &dir_stat);
-
-        if(S_ISDIR(dir_stat.st_mode))
+        if(strcmp(sub->d_name, ".") != 0 && strcmp(sub->d_name, "..") != 0) //We don t want to analyse those
         {
-          pid = fork();
+          char path[strlen(dir) + strlen(sub->d_name) + 2]; //plus 2 because of '\0' and '/'
 
-          if(pid == 0)
+          sprintf(path,"%s/%s", dir, sub->d_name);
+
+          if (lstat(path, &dir_stat) == -1)
           {
-            strcat(dir, "/");
-            strcat(dir, dir_info->d_name);
-            search_for_name(dir, filename, PRINT);
-            printf("\n");
-            dir = previous_dir(dir, strlen(dir_info->d_name));
+            printf("lstat ERROR\n");
+
+            return 1;
           }
-          else if(pid > 0)
+
+          if(S_ISDIR(dir_stat.st_mode) && !S_ISLNK(dir_stat.st_mode)) //found a directory
           {
-            pidSon = wait(&status);
+            pid = fork();
+
+            if(pid == 0) //the new process
+            {
+              search_for_name(path,filename, PRINT);
+
+              exit(0);
+            }
+
+
+            else if(pid > 0) //the current process has to wait for the new one to finish
+              waitpid(pid, NULL, 0);
+
+            else
+            {
+              printf("PID ERROR\n");
+
+              return 1;
+            }
           }
-          else
-            return -1;
+
+          else if(S_ISREG(dir_stat.st_mode) && strcmp(sub->d_name, filename) == 0) //found a regular file && and the name of the file correspond to the filename we are looking for
+              printf("FOUND -> %s\n", dir);
         }
-        else if(S_ISREG(dir_stat.st_mode))
-        {
-          strcat(dir, "/");
-          strcat(dir, dir_info->d_name);
-          write(STDOUT_FILENO,dir,strlen(dir) + 1);
-          printf("\n");
-          dir = previous_dir(dir, strlen(dir_info->d_name));
-        }
+
       }
 
       break;
     }
-    case DELETE:
+    case DELETE: //In case we must delete the found files
     {
 
       break;
     }
   }
   return 0;
-}
-
-
-char* previous_dir(char *curr, int size)
-{
-  char previous [strlen(curr) - size + 1];
-  int i = 0;
-
-  for(i = 0; i < strlen(curr) - size - 2; i++)
-  {
-    previous[i] = curr[i];
-  }
-  strcpy(curr, previous);
-
-  return curr;
 }

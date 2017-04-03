@@ -11,6 +11,21 @@ int main (int argc, char *argv[], char *envp[])
 {
    char dir[PATH_MAX + 1];
 
+   struct sigaction signal_handler;
+
+   signal_handler.sa_handler = sigint_handler;
+
+   sigemptyset(&signal_handler.sa_mask);
+
+   signal_handler.sa_flags = 0;
+
+   if (sigaction(SIGINT, &signal_handler, NULL) < 0)
+   {
+      fprintf(stderr,"Unable to install SIGINT handler\n");
+
+      exit(1);
+    }
+
    switch(argc) //==2 (help invoked) || == 5 (delete or print) || == 8 (exec)
    {
    	case 1:  //in case user does not insert a single option
@@ -51,12 +66,13 @@ int main (int argc, char *argv[], char *envp[])
       {
         printf("Now searching %s\n", argv[3]);
 
-        if(!(seacher(dir, argv[2], argv[3], argv[4])))
+        if(seacher(dir, argv[2], argv[3], argv[4]) == 1)
         {
-          printf("Something went wrong\n");
+          printf("Something went WRONG\n");
           return 1;
         }
-
+        else
+          printf("Sucess\n");
       }
 
    		return 0;

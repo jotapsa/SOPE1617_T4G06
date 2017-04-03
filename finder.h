@@ -12,11 +12,18 @@
 #include <wait.h>
 #include "finder.h"
 
-#define PRINT 1
-#define DELETE 2
 #define MAX_STR_LEN 256
-#define OPTION 3
-#define ACTION 4
+/*Paramenters*/
+#define OPTION 1
+#define ACTION 2
+/*Actions*/
+#define PRINT 3
+#define DELETE 4
+#define EXECUTE 5
+/*Types*/
+#define FOLDER 6
+#define FILE 7
+#define LINK 8
 
 void print_help_menu ();
 
@@ -31,5 +38,7 @@ char* get_path(char *dir, char *sub);
 int seacher (char *dir, char *option, char *filename, char *action);
 
 int search_for_name (char *dir, char *filename, int op);
+
+int search_for_type (char *dir, int type, int op);
 
 #endif

@@ -99,6 +99,20 @@ char* extract_dir(char *str) //it will return the directory to start seaching
 	return "ERROR";
 }
 
+int get_type(char *type)
+{
+  if(strcmp("f", type) == 0)
+    return FILE;
+
+  else if (strcmp("d", type) == 0)
+    return FOLDER;
+
+  else if (strcmp("l", type) == 0)
+    return LINK;
+
+  else
+    return -1;
+}
 
 int seacher (char *dir, char *option, char *filename, char *action)
 {
@@ -122,7 +136,20 @@ int seacher (char *dir, char *option, char *filename, char *action)
 
   else if(strcmp(option, "-type") == 0)
   {
-
+    if(strcmp(action, "-print") == 0)
+    {
+      if(search_for_type(dir, get_type(filename), PRINT)  == 0)
+        return 0;
+      else
+        return 1;
+    }
+    else
+    {
+      if(search_for_type(dir, get_type(filename), DELETE)  == 0)
+        return 0;
+      else
+        return 1;
+    }
   }
   else
   {
@@ -139,8 +166,6 @@ int search_for_name (char *dir, char *filename, int op)
   struct stat dir_stat;
   pid_t pid;
   int status;
-  char *path;
-  char *cmd;
 
   if((directory = opendir(dir)) == NULL)
   {
@@ -150,13 +175,13 @@ int search_for_name (char *dir, char *filename, int op)
 
   chdir(dir);
 
-  while((sub = readdir(directory)) != NULL)
+  while((sub = readdir(directory)) != NULL) //it will go through all the things in the directory
   {
     if(strcmp(sub->d_name, ".") != 0 && strcmp(sub->d_name, "..") != 0) //We don t want to analyse those
     {
       char path[strlen(dir) + strlen(sub->d_name) + 2]; //plus 2 because of '\0' and '/'
 
-      sprintf(path,"%s/%s", dir, sub->d_name);
+      sprintf(path,"%s/%s", dir, sub->d_name); //valid path creation
 
       if (lstat(path, &dir_stat) == -1)
       {
@@ -190,19 +215,215 @@ int search_for_name (char *dir, char *filename, int op)
 
       else if(S_ISREG(dir_stat.st_mode) && strcmp(sub->d_name, filename) == 0) //found a regular file && and the name of the file correspond to the filename we are looking for
       {
-        if(op == PRINT)
-          printf("FOUND -> %s\n", dir);
-        else
+        if(op == PRINT) //prints the directory
+          printf("FOUND -> %s\n", path);
+        else //destroys the found file
+        {
+          char cmd[strlen("rm ") + strlen(filename) + 1];
+          strcpy(cmd, "rm ");
+          strcat(cmd, filename);
+          switch (system(cmd))
           {
-            char cmd[strlen("rm ") + strlen(filename) + 1];
-            strcpy(cmd, "rm ");
-            strcat(cmd, filename);
-            system(cmd);
+            case -1:
+            {
+              printf("fork() failed or waitpid returned an error != EINTR\n");
+              return 1;
+            }
+            case 127:
+            {
+              printf("exec() has failed, and %s was not deleted\n", sub->d_name);
+              return 1;
+            }
           }
+        }
       }
-
     }
   }
 
+  return 0;
+}
+
+int search_for_type (char *dir, int type, int op)
+{
+  DIR *directory;
+  struct dirent *sub;
+  struct stat dir_stat;
+  pid_t pid;
+  int status;
+  char *path;
+
+  if((directory = opendir(dir)) == NULL)
+  {
+    printf("Could not open %s\n", dir);
+    return 1;
+  }
+
+  if(type == -1)
+    return 1;
+
+  chdir(dir);
+
+  while((sub = readdir(directory)) != NULL) //it will go through all the things in the directory
+  {
+    if(strcmp(sub->d_name, ".") != 0 && strcmp(sub->d_name, "..") != 0)
+    {
+      char path[strlen(dir) + strlen(sub->d_name) + 2]; //plus 2 because of '\0' and '/'
+
+      sprintf(path,"%s/%s", dir, sub->d_name); //valid path creation
+
+      if (lstat(path, &dir_stat) == -1)
+      {
+        printf("lstat ERROR\n");
+
+        return 1;
+      }
+
+      switch (type) {
+        case FOLDER:
+        {
+          if(S_ISDIR(dir_stat.st_mode))
+          {
+            pid = fork();
+
+            if(pid == 0) //new process
+            {
+              search_for_type(path, FOLDER, op);
+
+              exit(0);
+            }
+
+            else if(pid > 0)
+            {
+              waitpid(pid, NULL, 0);
+              if(op == PRINT)
+                printf("\nDIR: %s\n", path);
+              else
+              {
+                char cmd[strlen("rm ") + strlen(sub->d_name) + 1];
+                strcpy(cmd, "rm ");
+                strcat(cmd, sub->d_name);
+                switch (system(cmd))
+                {
+                  case -1:
+                  {
+                    printf("fork() failed or waitpid returned an error != EINTR\n");
+                    return 1;
+                  }
+                  case 127:
+                  {
+                    printf("exec() has failed, and %s was not deleted\n", sub->d_name);
+                    return 1;
+                  }
+                }
+              }
+            }
+
+            else
+            {
+              printf("PID ERROR\n");
+
+              return 1;
+            }
+          }
+        }
+        case FILE:
+        {
+          if(S_ISDIR(dir_stat.st_mode) && !S_ISLNK(dir_stat.st_mode))
+          {
+            pid = fork();
+
+            if(pid == 0) //new process
+            {
+              search_for_type(path, FILE, op);
+
+              exit(0);
+            }
+
+            else if(pid > 0)
+              waitpid(pid, NULL, 0);
+
+            else
+            {
+              printf("PID ERROR\n");
+
+              return 1;
+            }
+          }
+          else if(S_ISREG(dir_stat.st_mode) && !S_ISLNK(dir_stat.st_mode))
+          {
+            if(op == PRINT)
+              printf("FILE: %s\n", path);
+            else
+            {
+              char cmd[strlen("rm ") + strlen(sub->d_name) + 1];
+              strcpy(cmd, "rm ");
+              strcat(cmd, sub->d_name);
+              switch (system(cmd))
+              {
+                case -1:
+                {
+                  printf("fork() failed or waitpid returned an error != EINTR\n");
+                  return 1;
+                }
+                case 127:
+                {
+                  printf("exec() has failed, and %s was not deleted\n", sub->d_name);
+                  return 1;
+                }
+              }
+            }
+          }
+        case LINK:
+        {
+          if(S_ISDIR(dir_stat.st_mode) && !S_ISLNK(dir_stat.st_mode))
+          {
+            pid = fork();
+
+            if(pid == 0) //new process
+            {
+              search_for_type(path, LINK, op);
+
+              exit(0);
+            }
+
+            else if(pid > 0)
+              waitpid(pid, NULL, 0);
+
+            else
+            {
+              printf("PID ERROR\n");
+
+              return 1;
+            }
+          }
+          else if(S_ISLNK(dir_stat.st_mode) && !S_ISREG(dir_stat.st_mode))
+          {
+            if(op == PRINT)
+              printf("LINK: %s\n", path);
+            else
+            {
+              char cmd[strlen("rm ") + strlen(sub->d_name) + 1];
+              strcpy(cmd, "rm ");
+              strcat(cmd, sub->d_name);
+              switch (system(cmd))
+              {
+                case -1:
+                {
+                  printf("fork() failed or waitpid returned an error != EINTR\n");
+                  return 1;
+                }
+                case 127:
+                {
+                  printf("exec() has failed, and %s was not deleted\n", sub->d_name);
+                  return 1;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  }
   return 0;
 }

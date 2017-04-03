@@ -104,11 +104,21 @@ int seacher (char *dir, char *option, char *filename, char *action)
 {
   if(strcmp(option, "-name") == 0)
   {
-    if(search_for_name(dir, filename, PRINT)  == 0)
-      return 0;
-    else
-      return 1;
-  }
+      if(strcmp(action, "-print") == 0)
+      {
+        if(search_for_name(dir, filename, PRINT)  == 0)
+          return 0;
+        else
+          return 1;
+      }
+      else
+      {
+        if(search_for_name(dir, filename, DELETE)  == 0)
+          return 0;
+        else
+          return 1;
+      }
+    }
 
   else if(strcmp(option, "-type") == 0)
   {
@@ -130,6 +140,7 @@ int search_for_name (char *dir, char *filename, int op)
   pid_t pid;
   int status;
   char *path;
+  char *cmd;
 
   if((directory = opendir(dir)) == NULL)
   {
@@ -137,63 +148,61 @@ int search_for_name (char *dir, char *filename, int op)
     return 1;
   }
 
-  switch (op)
+  chdir(dir);
+
+  while((sub = readdir(directory)) != NULL)
   {
-    case PRINT: //In case we must print the found files
+    if(strcmp(sub->d_name, ".") != 0 && strcmp(sub->d_name, "..") != 0) //We don t want to analyse those
     {
-      chdir(dir);
+      char path[strlen(dir) + strlen(sub->d_name) + 2]; //plus 2 because of '\0' and '/'
 
-      while((sub = readdir(directory)) != NULL)
+      sprintf(path,"%s/%s", dir, sub->d_name);
+
+      if (lstat(path, &dir_stat) == -1)
       {
-        if(strcmp(sub->d_name, ".") != 0 && strcmp(sub->d_name, "..") != 0) //We don t want to analyse those
-        {
-          char path[strlen(dir) + strlen(sub->d_name) + 2]; //plus 2 because of '\0' and '/'
+        printf("lstat ERROR\n");
 
-          sprintf(path,"%s/%s", dir, sub->d_name);
-
-          if (lstat(path, &dir_stat) == -1)
-          {
-            printf("lstat ERROR\n");
-
-            return 1;
-          }
-
-          if(S_ISDIR(dir_stat.st_mode) && !S_ISLNK(dir_stat.st_mode)) //found a directory
-          {
-            pid = fork();
-
-            if(pid == 0) //the new process
-            {
-              search_for_name(path,filename, PRINT);
-
-              exit(0);
-            }
-
-
-            else if(pid > 0) //the current process has to wait for the new one to finish
-              waitpid(pid, NULL, 0);
-
-            else
-            {
-              printf("PID ERROR\n");
-
-              return 1;
-            }
-          }
-
-          else if(S_ISREG(dir_stat.st_mode) && strcmp(sub->d_name, filename) == 0) //found a regular file && and the name of the file correspond to the filename we are looking for
-              printf("FOUND -> %s\n", dir);
-        }
-
+        return 1;
       }
 
-      break;
-    }
-    case DELETE: //In case we must delete the found files
-    {
+      if(S_ISDIR(dir_stat.st_mode) && !S_ISLNK(dir_stat.st_mode)) //found a directory
+      {
+        pid = fork();
 
-      break;
+        if(pid == 0) //the new process
+        {
+          search_for_name(path,filename, op);
+
+          exit(0);
+        }
+
+
+        else if(pid > 0) //the current process has to wait for the new one to finish
+          waitpid(pid, NULL, 0);
+
+        else
+        {
+          printf("PID ERROR\n");
+
+          return 1;
+        }
+      }
+
+      else if(S_ISREG(dir_stat.st_mode) && strcmp(sub->d_name, filename) == 0) //found a regular file && and the name of the file correspond to the filename we are looking for
+      {
+        if(op == PRINT)
+          printf("FOUND -> %s\n", dir);
+        else
+          {
+            char cmd[strlen("rm ") + strlen(filename) + 1];
+            strcpy(cmd, "rm ");
+            strcat(cmd, filename);
+            system(cmd);
+          }
+      }
+
     }
   }
+
   return 0;
 }

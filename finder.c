@@ -369,7 +369,7 @@ int search_for_type (char *dir, int type, int op)
               sprintf(output,"%s\n",path);
               write(STDOUT_FILENO,output,strlen(output));
             }
-            
+
             else if(op == DELETE && type == FILE) //THIS FIXED THE FIRST *bug*, NOT SURE WHY XD
             {
               char cmd[strlen("rm ") + strlen(sub->d_name) + 3]; //prepares string with enough size for rm command
@@ -393,6 +393,7 @@ int search_for_type (char *dir, int type, int op)
               }
             }
           }
+        }
         case LINK:
         {
           if(S_ISDIR(dir_stat.st_mode) && !S_ISLNK(dir_stat.st_mode)) //create new process and search there
@@ -450,7 +451,6 @@ int search_for_type (char *dir, int type, int op)
         }
       }
     }
-  }
   }
   return 0;
 }

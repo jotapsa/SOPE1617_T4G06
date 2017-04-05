@@ -1,5 +1,5 @@
-#ifndef _ABOUT_H_
-#define _ABOUT_H_
+#ifndef _FINDER_H_
+#define _FINDER_H_
 
 #include <stdio.h>
 #include <string.h>

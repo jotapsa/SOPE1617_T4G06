@@ -12,7 +12,7 @@
 #include <wait.h>
 #include "finder.h"
 
-#define MAX_STR_LEN 256
+#define MAX_STR_LEN 512
 /*Paramenters*/
 #define OPTION 1
 #define ACTION 2

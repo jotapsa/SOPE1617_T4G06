@@ -166,6 +166,7 @@ int search_for_name (char *dir, char *filename, int op)
   struct stat dir_stat;
   pid_t pid;
   int status;
+  char output[PATH_MAX + 2];
 
   if((directory = opendir(dir)) == NULL)
   {
@@ -219,19 +220,22 @@ int search_for_name (char *dir, char *filename, int op)
           printf("FOUND -> %s\n", path);
         else //destroys the found file
         {
-          char cmd[strlen("rm ") + strlen(filename) + 1];
-          strcpy(cmd, "rm ");
-          strcat(cmd, filename);
-          switch (system(cmd))
+          char cmd[strlen("rm ") + strlen(sub->d_name) + 3]; //prepares string with enough size for rm command
+          strcpy(cmd, "rm '"); //the ' is to make sure files with spaces in the name are deleted too
+          strcat(cmd, sub->d_name);
+          strcat(cmd,"'");
+          switch (system(cmd)) //give the correct error message depending on system return
           {
             case -1:
             {
-              printf("fork() failed or waitpid returned an error != EINTR\n");
+              strcpy(output, "fork() failed or waitpid returned an error != EINTR\n");
+              write(STDOUT_FILENO,output,strlen(output));
               return 1;
             }
             case 127:
             {
-              printf("exec() has failed, and %s was not deleted\n", sub->d_name);
+              sprintf(output,"exec() has failed, and %s was not deleted\n", sub->d_name);
+              write(STDOUT_FILENO,output,strlen(output));
               return 1;
             }
           }
@@ -239,7 +243,6 @@ int search_for_name (char *dir, char *filename, int op)
       }
     }
   }
-
   return 0;
 }
 
@@ -251,6 +254,7 @@ int search_for_type (char *dir, int type, int op)
   pid_t pid;
   int status;
   char *path;
+  char output[PATH_MAX + 2];
 
   if((directory = opendir(dir)) == NULL)
   {
@@ -278,40 +282,49 @@ int search_for_type (char *dir, int type, int op)
         return 1;
       }
 
-      switch (type) {
-        case FOLDER:
+      switch (type)
+      {
+        case FOLDER: //case we are searching for folders/dirs
         {
-          if(S_ISDIR(dir_stat.st_mode))
+          if(S_ISDIR(dir_stat.st_mode) && !S_ISREG(dir_stat.st_mode) ) //FIRST, create new process and search there
           {
             pid = fork();
 
             if(pid == 0) //new process
             {
-              search_for_type(path, FOLDER, op);
+              search_for_type(path, type, op);
 
               exit(0);
             }
 
-            else if(pid > 0)
+            else if(pid > 0) //SECOND, act on the directory
             {
-              waitpid(pid, NULL, 0);
-              if(op == PRINT)
-                printf("\nDIR: %s\n", path);
+              waitpid(pid, NULL, 0); //wait for sub-process to finish
+
+              if(op == PRINT) //prints path to directory
+              {
+                sprintf(output,"%s\n",path);
+                write(STDOUT_FILENO,output,strlen(output));
+              }
+
               else
               {
-                char cmd[strlen("rm ") + strlen(sub->d_name) + 1];
-                strcpy(cmd, "rm ");
+                char cmd[strlen("rm ") + strlen(sub->d_name) + 3]; //prepares string with enough size for rm command
+                strcpy(cmd, "rm '"); //the ' is to make sure files with spaces in the name are deleted too
                 strcat(cmd, sub->d_name);
-                switch (system(cmd))
+                strcat(cmd,"'");
+                switch (system(cmd)) //give the correct error message depending on system return
                 {
                   case -1:
                   {
-                    printf("fork() failed or waitpid returned an error != EINTR\n");
+                    strcpy(output, "fork() failed or waitpid returned an error != EINTR\n");
+                    write(STDOUT_FILENO,output,strlen(output));
                     return 1;
                   }
                   case 127:
                   {
-                    printf("exec() has failed, and %s was not deleted\n", sub->d_name);
+                    sprintf(output,"exec() has failed, and %s was not deleted\n", sub->d_name);
+                    write(STDOUT_FILENO,output,strlen(output));
                     return 1;
                   }
                 }
@@ -328,18 +341,18 @@ int search_for_type (char *dir, int type, int op)
         }
         case FILE:
         {
-          if(S_ISDIR(dir_stat.st_mode) && !S_ISLNK(dir_stat.st_mode))
+          if(S_ISDIR(dir_stat.st_mode) && !S_ISLNK(dir_stat.st_mode)) //create new process and search there
           {
             pid = fork();
 
             if(pid == 0) //new process
             {
-              search_for_type(path, FILE, op);
+              search_for_type(path, type, op);
 
               exit(0);
             }
 
-            else if(pid > 0)
+            else if(pid > 0) //current process just waits
               waitpid(pid, NULL, 0);
 
             else
@@ -349,25 +362,32 @@ int search_for_type (char *dir, int type, int op)
               return 1;
             }
           }
-          else if(S_ISREG(dir_stat.st_mode) && !S_ISLNK(dir_stat.st_mode))
+          else if(S_ISREG(dir_stat.st_mode) && !S_ISLNK(dir_stat.st_mode)) //act on the file
           {
-            if(op == PRINT)
-              printf("FILE: %s\n", path);
-            else
+            if(op == PRINT && type == FILE) //prints path to file THIS FIXED THE FIRST *bug*, NOT SURE WHY XD
             {
-              char cmd[strlen("rm ") + strlen(sub->d_name) + 1];
-              strcpy(cmd, "rm ");
+              sprintf(output,"%s\n",path);
+              write(STDOUT_FILENO,output,strlen(output));
+            }
+            
+            else if(op == DELETE && type == FILE) //THIS FIXED THE FIRST *bug*, NOT SURE WHY XD
+            {
+              char cmd[strlen("rm ") + strlen(sub->d_name) + 3]; //prepares string with enough size for rm command
+              strcpy(cmd, "rm '"); //the ' is to make sure files with spaces in the name are deleted too
               strcat(cmd, sub->d_name);
-              switch (system(cmd))
+              strcat(cmd,"'");
+              switch (system(cmd)) //give the correct error message depending on system return
               {
                 case -1:
                 {
-                  printf("fork() failed or waitpid returned an error != EINTR\n");
+                  strcpy(output, "fork() failed or waitpid returned an error != EINTR\n");
+                  write(STDOUT_FILENO,output,strlen(output));
                   return 1;
                 }
                 case 127:
                 {
-                  printf("exec() has failed, and %s was not deleted\n", sub->d_name);
+                  sprintf(output,"exec() has failed, and %s was not deleted\n", sub->d_name);
+                  write(STDOUT_FILENO,output,strlen(output));
                   return 1;
                 }
               }
@@ -375,18 +395,18 @@ int search_for_type (char *dir, int type, int op)
           }
         case LINK:
         {
-          if(S_ISDIR(dir_stat.st_mode) && !S_ISLNK(dir_stat.st_mode))
+          if(S_ISDIR(dir_stat.st_mode) && !S_ISLNK(dir_stat.st_mode)) //create new process and search there
           {
             pid = fork();
 
             if(pid == 0) //new process
             {
-              search_for_type(path, LINK, op);
+              search_for_type(path, type, op);
 
               exit(0);
             }
 
-            else if(pid > 0)
+            else if(pid > 0) //current process
               waitpid(pid, NULL, 0);
 
             else
@@ -396,25 +416,32 @@ int search_for_type (char *dir, int type, int op)
               return 1;
             }
           }
-          else if(S_ISLNK(dir_stat.st_mode) && !S_ISREG(dir_stat.st_mode))
+          else if(S_ISLNK(dir_stat.st_mode) && !S_ISREG(dir_stat.st_mode)) //act on the link
           {
-            if(op == PRINT)
-              printf("LINK: %s\n", path);
+            if(op == PRINT) //prints path to link
+            {
+              sprintf(output,"%s\n",path);
+              write(STDOUT_FILENO,output,strlen(output));
+            }
+
             else
             {
-              char cmd[strlen("rm ") + strlen(sub->d_name) + 1];
-              strcpy(cmd, "rm ");
+              char cmd[strlen("rm ") + strlen(sub->d_name) + 3]; //prepares string with enough size for rm command
+              strcpy(cmd, "rm '"); //the ' is to make sure files with spaces in the name are deleted too
               strcat(cmd, sub->d_name);
-              switch (system(cmd))
+              strcat(cmd,"'");
+              switch (system(cmd)) //give the correct error message depending on system return
               {
                 case -1:
                 {
-                  printf("fork() failed or waitpid returned an error != EINTR\n");
+                  strcpy(output, "fork() failed or waitpid returned an error != EINTR\n");
+                  write(STDOUT_FILENO,output,strlen(output));
                   return 1;
                 }
                 case 127:
                 {
-                  printf("exec() has failed, and %s was not deleted\n", sub->d_name);
+                  sprintf(output,"exec() has failed, and %s was not deleted\n", sub->d_name);
+                  write(STDOUT_FILENO,output,strlen(output));
                   return 1;
                 }
               }

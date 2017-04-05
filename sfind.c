@@ -64,8 +64,6 @@ int main (int argc, char *argv[], char *envp[])
       }
       else
       {
-        printf("Now searching %s\n", argv[3]);
-
         if(seacher(dir, argv[2], argv[3], argv[4]) == 1)
         {
           printf("Something went WRONG\n");

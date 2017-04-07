@@ -204,7 +204,37 @@ int search_for_name (char *dir, char *filename, int op)
 
 
         else if(pid > 0) //the current process has to wait for the new one to finish
+        {
           waitpid(pid, NULL, 0);
+
+          if(strcmp(sub->d_name, filename) == 0 && op == PRINT)
+          {
+            sprintf(output,"%s\n",path);
+            write(STDOUT_FILENO,output,strlen(output));
+          }
+          else if(strcmp(sub->d_name, filename) == 0 && op == DELETE)
+          {
+            char cmd[strlen("sudo rm -r ") + strlen(sub->d_name) + 3]; //prepares string with enough size for rm command
+            strcpy(cmd, "sudo rm -r '"); //the ' is to make sure files with spaces in the name are deleted too
+            strcat(cmd, sub->d_name);
+            strcat(cmd,"'");
+            switch (system(cmd)) //give the correct error message depending on system return
+            {
+              case -1:
+              {
+                strcpy(output, "fork() failed or waitpid returned an error != EINTR\n");
+                write(STDOUT_FILENO,output,strlen(output));
+                return 1;
+              }
+              case 127:
+              {
+                sprintf(output,"exec() has failed, and %s was not deleted\n", sub->d_name);
+                write(STDOUT_FILENO,output,strlen(output));
+                return 1;
+              }
+            }
+          }
+        }
 
         else
         {
@@ -217,7 +247,7 @@ int search_for_name (char *dir, char *filename, int op)
       else if(S_ISREG(dir_stat.st_mode) && strcmp(sub->d_name, filename) == 0) //found a regular file && and the name of the file correspond to the filename we are looking for
       {
         if(op == PRINT) //prints the directory
-          printf("FOUND -> %s\n", path);
+          printf("%s\n", path);
         else //destroys the found file
         {
           char cmd[strlen("rm ") + strlen(sub->d_name) + 3]; //prepares string with enough size for rm command
@@ -309,8 +339,8 @@ int search_for_type (char *dir, int type, int op)
 
               else
               {
-                char cmd[strlen("rm ") + strlen(sub->d_name) + 3]; //prepares string with enough size for rm command
-                strcpy(cmd, "rm '"); //the ' is to make sure files with spaces in the name are deleted too
+                char cmd[strlen("rm -fR ") + strlen(sub->d_name) + 3]; //prepares string with enough size for rm command
+                strcpy(cmd, "rm -fR '"); //the ' is to make sure files with spaces in the name are deleted too
                 strcat(cmd, sub->d_name);
                 strcat(cmd,"'");
                 switch (system(cmd)) //give the correct error message depending on system return

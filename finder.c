@@ -76,7 +76,7 @@ char* extract_dir(char *str) //it will return the directory to start seaching
 	}
 	else if(strcmp(str, ".") == 0) // . means that is to search in the current dir
 	{
-		return getcwd( buff, PATH_MAX + 1 );
+		return getcwd(buff, PATH_MAX + 1 );
 	}
 	else if(strcmp(str, "..") == 0) // .. means that we have to search in the previous directory
 	{
@@ -86,7 +86,7 @@ char* extract_dir(char *str) //it will return the directory to start seaching
 			return NULL;
 		}
 		else
-			return getcwd( buff, PATH_MAX + 1 );
+			return getcwd(buff, PATH_MAX + 1 );
 	}
 	else //means that the user wants to search in a diferent non-related directoty
 	{

@@ -21,7 +21,7 @@ int main (int argc, char *argv[], char *envp[])
 
    if (sigaction(SIGINT, &signal_handler, NULL) < 0)
    {
-      fprintf(stderr,"Unable to install SIGINT handler\n");
+      fprintf(stderr,"Unable to install SIGINT handler\n"); //should print to erro stream
 
       exit(1);
     }
@@ -67,6 +67,7 @@ int main (int argc, char *argv[], char *envp[])
         if(seacher(dir, argv[2], argv[3], argv[4]) == 1)
         {
           printf("Something went WRONG\n");
+          
           return 1;
         }
         else

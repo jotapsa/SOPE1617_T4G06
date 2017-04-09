@@ -18,7 +18,7 @@ void sigint_handler(int signo)
   while(resp != 'y' && resp != 'Y' && resp != 'n' && resp != 'N' )
   {
     printf("Are you sure you want to terminate (Y/N)?\n");
-    scanf("%c", &resp);
+    resp = getchar();
   }
 
   if(resp == 'y' || resp == 'Y')
@@ -29,8 +29,6 @@ void sigint_handler(int signo)
 
 void print_help_menu () //Prints the instructions for usage
 {
-  char output[MAX_STR_LEN];
-
   printf ("\nUsage: sfind DIR -<options>\n\n");
 
   printf ("Options:\n\t-name string -> search for a file with the name in string\n\n");
@@ -149,8 +147,8 @@ int search_for_name (char *dir, char *filename, int op)
 
   if((directory = opendir(dir)) == NULL)
   {
-    printf("Could not open %s\n", dir);
-    return 1;
+    perror (dir);
+    exit (1);
   }
 
   chdir(dir);
@@ -165,9 +163,8 @@ int search_for_name (char *dir, char *filename, int op)
 
       if (lstat(path, &dir_stat) == -1)
       {
-        printf("lstat ERROR\n");
-
-        return 1;
+        perror (path);
+        exit (1);
       }
 
       if(S_ISDIR(dir_stat.st_mode) && !S_ISLNK(dir_stat.st_mode)) //found a directory
@@ -214,9 +211,8 @@ int search_for_name (char *dir, char *filename, int op)
 
         else
         {
-          printf("PID ERROR\n");
-
-          return 1;
+          perror ("pid");
+          exit(1);
         }
       }
 
@@ -262,9 +258,10 @@ int search_for_type (char *dir, int type, int op)
 
   if((directory = opendir(dir)) == NULL)
   {
-    printf("Could not open %s\n", dir);
-    return 1;
+    perror (dir);
+    exit (1);
   }
+
 
   if(type == -1)
   return 1;
@@ -281,9 +278,8 @@ int search_for_type (char *dir, int type, int op)
 
       if (lstat(path, &dir_stat) == -1)
       {
-        printf("lstat ERROR\n");
-
-        return 1;
+        perror (path);
+        exit (1);
       }
 
       switch (type)
@@ -307,8 +303,7 @@ int search_for_type (char *dir, int type, int op)
 
               if(op == PRINT) //prints path to directory
               {
-                sprintf(output,"%s\n",path);
-                write(STDOUT_FILENO,output,strlen(output));
+                printf ("%s\n", path);
               }
 
               else
@@ -321,14 +316,12 @@ int search_for_type (char *dir, int type, int op)
                 {
                   case -1:
                   {
-                    strcpy(output, "fork() failed or waitpid returned an error != EINTR\n");
-                    write(STDOUT_FILENO,output,strlen(output));
+                    printf ("fork() failed or waitpid returned an error != EINTR\n");
                     return 1;
                   }
                   case 127:
                   {
-                    sprintf(output,"exec() has failed, and %s was not deleted\n", sub->d_name);
-                    write(STDOUT_FILENO,output,strlen(output));
+                    printf ("exec() has failed, and %s was not deleted\n", sub->d_name);
                     return 1;
                   }
                 }
@@ -337,9 +330,8 @@ int search_for_type (char *dir, int type, int op)
 
             else
             {
-              printf("PID ERROR\n");
-
-              return 1;
+              perror ("pid");
+              exit(1);
             }
           }
         }
@@ -361,9 +353,8 @@ int search_for_type (char *dir, int type, int op)
 
             else
             {
-              printf("PID ERROR\n");
-
-              return 1;
+              perror ("pid");
+              exit (1);
             }
           }
           else if(S_ISREG(dir_stat.st_mode) && !S_ISLNK(dir_stat.st_mode)) //act on the file
@@ -384,14 +375,12 @@ int search_for_type (char *dir, int type, int op)
               {
                 case -1:
                 {
-                  strcpy(output, "fork() failed or waitpid returned an error != EINTR\n");
-                  write(STDOUT_FILENO,output,strlen(output));
+                  printf ("fork() failed or waitpid returned an error != EINTR\n");
                   return 1;
                 }
                 case 127:
                 {
-                  sprintf(output,"exec() has failed, and %s was not deleted\n", sub->d_name);
-                  write(STDOUT_FILENO,output,strlen(output));
+                  printf ("exec() has failed, and %s was not deleted\n", sub->d_name);
                   return 1;
                 }
               }
@@ -416,9 +405,8 @@ int search_for_type (char *dir, int type, int op)
 
             else
             {
-              printf("PID ERROR\n");
-
-              return 1;
+              perror ("pid");
+              exit (1);
             }
           }
           else if(S_ISLNK(dir_stat.st_mode) && !S_ISREG(dir_stat.st_mode)) //act on the link

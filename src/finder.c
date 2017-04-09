@@ -64,43 +64,18 @@ int test_arg(char *arg, int op)
 
 char* extract_dir(char *str) //it will return the directory to start seaching
 {
-  char buff[PATH_MAX + 1];
+  char buff[PATH_MAX];
   char* dir;
   struct stat dir_inf;
 
-  if(strcmp(str, "~") == 0) //search in the home directory
-  {
-    strcpy(buff,"/home/");
-
-    strcat(buff,getenv("username"));
-
-    strcpy(dir,buff);
-
-    return dir;
+  if(lstat(str, &dir_inf) == -1){
+    perror (str);
+    exit (1);
   }
-  else if(strcmp(str, ".") == 0) // . means that is to search in the current dir
-  {
-    return getcwd(buff, PATH_MAX + 1 );
-  }
-  else if(strcmp(str, "..") == 0) // .. means that we have to search in the previous directory
-  {
-    if(chdir("..") == -1)
-    {
-      printf("cant change to parent directory\n");
-      return NULL;
-    }
-    else
-    return getcwd(buff, PATH_MAX + 1 );
-  }
-  else //means that the user wants to search in a diferent non-related directoty
-  {
-    if(lstat(str, &dir_inf) == -1)
-    return "ERROR";
-    else
-    return str;
-  }
+  else
+    chdir(str);
 
-  return "ERROR";
+  return getcwd(buff, PATH_MAX);
 }
 
 int get_type(char *type)
@@ -170,7 +145,7 @@ int search_for_name (char *dir, char *filename, int op)
   struct stat dir_stat;
   pid_t pid;
   int status;
-  char output[PATH_MAX + 2];
+  char output[PATH_MAX];
 
   if((directory = opendir(dir)) == NULL)
   {
@@ -283,7 +258,7 @@ int search_for_type (char *dir, int type, int op)
   pid_t pid;
   int status;
   char *path;
-  char output[PATH_MAX + 2];
+  char output[PATH_MAX];
 
   if((directory = opendir(dir)) == NULL)
   {

@@ -7,7 +7,7 @@
 
 int main (int argc, char *argv[], char *envp[])
 {
-  char dir[PATH_MAX + 1];
+  char dir[PATH_MAX];
 
   struct sigaction signal_handler;
 
@@ -39,14 +39,8 @@ int main (int argc, char *argv[], char *envp[])
     }
     case 5: //in case user wants -print or -delete
     {
-      strcpy(dir, extract_dir(argv[1]));
+      strncpy(dir, extract_dir(argv[1]), PATH_MAX);
 
-      if(strcmp(dir, "ERROR") == 0)
-      {
-        printf("%s is an invalid dir\n", argv[1]);
-        return 1;
-      }
-      else
       printf("dir:\t%s\n", dir);
 
       if(!(test_arg(argv[2], OPTION) && test_arg(argv[4], ACTION)))//checks if OPTION and ACTION are valid
@@ -62,7 +56,7 @@ int main (int argc, char *argv[], char *envp[])
           return 1;
         }
         else
-        printf("Sucess\n");
+        printf("Success\n");
       }
       return 0;
     }

@@ -25,6 +25,10 @@ int test_arg(char *arg, int op);
 
 char* extract_dir(char *str);
 
+int get_type(char *type);
+
+int file_destroyer (char *filename, int type);
+
 char* get_path(char *dir, char *sub);
 
 int seacher (char *dir, char *option, char *filename, char *action);
@@ -32,5 +36,7 @@ int seacher (char *dir, char *option, char *filename, char *action);
 int search_for_name (char *dir, char *filename, int op);
 
 int search_for_type (char *dir, int type, int op);
+
+int search_for_perm (char *dir, int perm, int op);
 
 #endif //_FINDER_H_

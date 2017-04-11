@@ -43,14 +43,15 @@ int main (int argc, char *argv[], char *envp[])
 
       printf("dir:\t%s\n", dir);
 
-      if(!(test_arg(argv[2], OPTION) && test_arg(argv[4], ACTION)))//checks if OPTION and ACTION are valid
+      if(test_arg(argv))
       {
-        printf("%s ou %s ARE NOT valid\n", argv[2], argv[4]);
+        printf ("Invalid arguments\n");
+        printf ("Type 'sfind -help' for instructions\n");
         return 1;
       }
       else
       {
-        if(seacher(dir, argv[2], argv[3], argv[4]) == 1)
+        if(searcher(dir, argv) == 1)
         {
           printf("Something went WRONG\n");
           return 1;

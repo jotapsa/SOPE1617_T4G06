@@ -21,7 +21,7 @@ void print_help_menu ();
 
 void sigint_handler(int signal);
 
-int test_arg(char *arg, int op);
+int test_arg(char *argv[]);
 
 char* extract_dir(char *str);
 
@@ -37,12 +37,6 @@ int file_destroyer (char *filename, int type);
 
 char* get_path(char *dir, char *sub);
 
-int seacher (char *dir, char *option, char *filename, char *action);
-
-int search_for_name (char *dir, char *filename, int op);
-
-int search_for_type (char *dir, int type, int op);
-
-int search_for_perm (char *dir, char *perm, int op);
+int searcher (char *dir, char *argv[]);
 
 #endif //_FINDER_H_

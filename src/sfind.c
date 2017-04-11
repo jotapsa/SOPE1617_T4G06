@@ -39,8 +39,6 @@ int main (int argc, char *argv[], char *envp[])
     }
     case 5: //in case user wants -print or -delete
     {
-      //strncpy(dir, extract_dir(argv[1]), PATH_MAX);
-
       if(test_arg(argv))
       {
         printf ("Invalid arguments\n");
@@ -49,7 +47,7 @@ int main (int argc, char *argv[], char *envp[])
       }
       else
       {
-        if(searcher(dir, argv) == 1)
+        if(searcher(argv[1], argv) == 1)
         {
           printf("Something went WRONG\n");
           return 1;

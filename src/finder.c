@@ -114,13 +114,12 @@ int compare_file_perm(char *perm, mode_t file)
   return strcmp(perm, file_perm);
 }
 
-char* get_new_path (char *str1, char *str2)
+char* getFilePath (char *dirPath, char *fileName)
 {
-  char *path = malloc((strlen(str1) + strlen(str2) + 2) * sizeof(char));//plus 2 because of '\0' and '/'
+  char *filePath = (char*) malloc((strlen(dirPath) + strlen(fileName) + 2) * sizeof(char));//plus 2 because of '\0' and '/'
+  sprintf(filePath,"%s/%s", dirPath, fileName); //valid path creation
 
-  sprintf(path,"%s/%s", str1, str2); //valid path creation
-
-  return path;
+  return filePath;
 }
 
 int file_destroyer (char *filename, int type)
@@ -175,11 +174,11 @@ int file_destroyer (char *filename, int type)
 }
 
 /*argv[2] references type, argv[3] references filename, argv[4] references action*/
-int searcher_aux (char *path, char *argv[], struct dirent *fileInfo_dirent){
+int searcher_aux (char *filePath, char *argv[], struct dirent *fileInfo_dirent){
 
   if ((strcmp (argv[2], "-name")==0) && (strcmp(fileInfo_dirent->d_name, argv[3])==0)){
     if (strcmp (argv[4], "-print")==0){
-      printf("%s\n", path);
+      printf("%s\n", filePath);
     }
     else if (strcmp(argv[4], "-delete")==0){
       sleep(1);
@@ -194,31 +193,32 @@ int searcher_aux (char *path, char *argv[], struct dirent *fileInfo_dirent){
   return 0;
 }
 
-int searcher (char *dir, char *argv[]){
+int searcher (char *dirPath, char *argv[]){
   DIR *directory;
   struct dirent *fileInfo_dirent;
   struct stat fileInfo_stat;
   pid_t pid;
   int status;
-  char *path, output[PATH_MAX];
+  char *filePath, output[PATH_MAX];
 
-  if((directory = opendir(argv[1])) == NULL)
+  if((directory = opendir(dirPath)) == NULL)
   {
-    perror (argv[1]);
+    perror (dirPath);
     exit (1);
   }
 
-  chdir(argv[1]);
+  //printf ("Searching %s\n", dirPath);
+  chdir(dirPath);
 
   while((fileInfo_dirent = readdir(directory)) != NULL) //it will go through all the things in the directory
   {
     if(strcmp(fileInfo_dirent->d_name, ".") != 0 && strcmp(fileInfo_dirent->d_name, "..") != 0)
     {
-      path = get_new_path(dir, fileInfo_dirent->d_name);
+      filePath = getFilePath(dirPath, fileInfo_dirent->d_name);
 
-      if (lstat(path, &fileInfo_stat) == -1)
+      if (lstat(filePath, &fileInfo_stat) == -1)
       {
-        perror (path);
+        perror (filePath);
         exit (1);
       }
     }
@@ -232,21 +232,25 @@ int searcher (char *dir, char *argv[]){
         exit(1);
       }
       if (pid == 0) {
-        searcher (path, argv);
+        searcher (filePath, argv);
         exit(0);
       }
       else{
-        //waitpid(pid, NULL, 0);
-        //searcher_aux (path, argv);
+        //waitpid (-1, &status, WNOHANG);
+        waitpid(-1, NULL, 0); // for now
+        searcher_aux (filePath, argv, fileInfo_dirent);
       }
 
     }
     //regular file
     else if(S_ISREG(fileInfo_stat.st_mode) || S_ISLNK(fileInfo_stat.st_mode)){
-      searcher_aux (path, argv, fileInfo_dirent);
+      searcher_aux (filePath, argv, fileInfo_dirent);
     }
 
+    //waitpid (-1, &status, WNOHANG);
   }
+
+  //while (waitpid (-1, &status, WNOHANG) >0); // Wait for every child process to terminate.
   return 0;
 }
 /*

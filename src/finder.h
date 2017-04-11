@@ -27,6 +27,10 @@ char* extract_dir(char *str);
 
 int get_type(char *type);
 
+char* get_important_digits(char *digits);
+
+int compare_file_perm(char *perm, mode_t file);
+
 char* get_new_path (char *str1, char *str2);
 
 int file_destroyer (char *filename, int type);
@@ -39,6 +43,6 @@ int search_for_name (char *dir, char *filename, int op);
 
 int search_for_type (char *dir, int type, int op);
 
-int search_for_perm (char *dir, int perm, int op);
+int search_for_perm (char *dir, char *perm, int op);
 
 #endif //_FINDER_H_

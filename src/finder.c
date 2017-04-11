@@ -68,52 +68,35 @@ char* getFilePath (char *dirPath, char *fileName)
   return filePath;
 }
 
-int file_destroyer (char *filename, int type)
-{
-  switch(type)
-  {
-    case DIRECTORY:
-    {
-      char cmd[strlen("rm -fR ") + strlen(filename) + 3]; //prepares string with enough size for rm command
-      strcpy(cmd, "rm -fR '"); //the ' is to make sure files with spaces in the name are deleted too
-      strcat(cmd, filename);
-      strcat(cmd,"'");
-      switch (system(cmd)) //give the correct error message depending on system return
-      {
-        case -1:
-        {
-          printf ("fork() failed or waitpid returned an error != EINTR\n");
-          return 1;
-        }
-        case 127:
-        {
-          printf ("exec() has failed, and %s was not deleted\n", filename);
-          return 1;
-        }
-      }
-    }
-    case REGULAR:
-    case LINK:
-    {
-      char cmd[strlen("rm ") + strlen(filename) + 3]; //prepares string with enough size for rm command
-      strcpy(cmd, "rm '"); //the ' is to make sure files with spaces in the name are deleted too
-      strcat(cmd, filename);
-      strcat(cmd,"'");
+int deleteFile (char *filename, struct stat fileInfo_stat){
+  char *cmd;
 
-      switch (system(cmd)) //give the correct error message depending on system return
-      {
-        case -1:
-        {
-          printf ("fork() failed or waitpid returned an error != EINTR\n");
-          return 1;
-        }
-        case 127:
-        {
-          printf ("exec() has failed, and %s was not deleted\n", filename);
-          return 1;
-        }
-      }
+  if (S_ISDIR(fileInfo_stat.st_mode)){
+    cmd = (char*) malloc ((strlen("rm -fR ") + strlen(filename) + 3)*sizeof(char)); //allocates space for cmdstring
+    sprintf (cmd, "rm -fR '%s'", filename); //the ' is to make sure files with spaces in the name are deleted too
+  }
+  else if ( S_ISREG(fileInfo_stat.st_mode) || S_ISLNK(fileInfo_stat.st_mode)){
+    cmd = (char*) malloc ((strlen("rm ") + strlen(filename) + 3)*sizeof(char));
+    sprintf (cmd, "rm -fR '%s'", filename);
+  }
+
+  switch (system(cmd))
+  {
+    case -1:{
+      printf ("fork() failed or waitpid returned an error != EINTR\n");
+      return 1;
     }
+    break;
+
+    case 127:{
+      printf ("exec() has failed, and %s was not deleted\n", filename);
+      return 1;
+    }
+    break;
+
+    default:
+      exit(1);
+    break;
   }
 
   return 0;
@@ -127,9 +110,10 @@ int searcher_aux (char *filePath, char *argv[], struct stat fileInfo_stat, struc
       if (strcmp(fileInfo_dirent->d_name, argv[3])==0){
         switch (getActionType(argv[4])) {
           case PRINT:
-          printf("%s\n", filePath);
+            printf("%s\n", filePath);
           break;
           case DELETE:
+            deleteFile (filePath, fileInfo_stat);
           break;
           case EXECUTE:
           break;
@@ -143,9 +127,10 @@ int searcher_aux (char *filePath, char *argv[], struct stat fileInfo_stat, struc
       || (getFileType(argv[3]) == LINK && S_ISLNK(fileInfo_stat.st_mode))){
         switch (getActionType(argv[4])) {
           case PRINT:
-          printf("%s\n", filePath);
+            printf("%s\n", filePath);
           break;
           case DELETE:
+            deleteFile (filePath, fileInfo_stat);
           break;
           case EXECUTE:
           break;
@@ -157,9 +142,10 @@ int searcher_aux (char *filePath, char *argv[], struct stat fileInfo_stat, struc
       if (compare_file_perm (argv[3], fileInfo_stat.st_mode)==0){
         switch (getActionType(argv[4])) {
           case PRINT:
-          printf("%s\n", filePath);
+            printf("%s\n", filePath);
           break;
           case DELETE:
+            deleteFile (filePath, fileInfo_stat);
           break;
           case EXECUTE:
           break;

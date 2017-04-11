@@ -1,13 +1,3 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <signal.h>
-#include <limits.h> //PATH_MAX
-#include <sys/types.h>
-#include <unistd.h> //fork
-#include <sys/wait.h> //waitpid
-#include <sys/stat.h> // struct stat
-#include <dirent.h> //Type DIR
 #include "finder.h"
 
 void sigint_handler(int signo) // need to find a way to identify child proc

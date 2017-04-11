@@ -5,7 +5,7 @@
 #include <limits.h> //PATH_MAX
 #include <sys/types.h>
 #include <unistd.h> //fork
-#include <wait.h> //waitpid
+#include <sys/wait.h> //waitpid
 #include <sys/stat.h> // struct stat
 #include <dirent.h> //Type DIR
 #include "finder.h"

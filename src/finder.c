@@ -93,7 +93,7 @@ int get_type(char *type)
 
 char* get_new_path (char *str1, char *str2)
 {
-  char path[strlen(str1) + strlen(str2) + 2]; //plus 2 because of '\0' and '/'
+  char *path = malloc((strlen(str1) + strlen(str2) + 2) * sizeof(char));//plus 2 because of '\0' and '/'
 
   sprintf(path,"%s/%s", str1, str2); //valid path creation
 
@@ -236,15 +236,13 @@ int search_for_name (char *dir, char *filename, int op)
           exit(0);
         }
 
-
         else if(pid > 0) //the current process has to wait for the new one to finish
         {
           waitpid(pid, NULL, 0);
 
           if(strcmp(sub->d_name, filename) == 0 && op == PRINT)
-          {
             printf ("%s\n", path);
-          }
+
           else if(strcmp(sub->d_name, filename) == 0 && op == DELETE)
           {
             if(file_destroyer(sub->d_name, FOLDER) == 1)
@@ -367,7 +365,7 @@ int search_for_type (char *dir, int type, int op)
             }
 
             else if(pid > 0) //current process just waits
-            waitpid(pid, NULL, 0);
+              waitpid(pid, NULL, 0);
 
             else
             {
@@ -415,9 +413,7 @@ int search_for_type (char *dir, int type, int op)
           else if(S_ISLNK(dir_stat.st_mode) && !S_ISREG(dir_stat.st_mode)) //act on the link
           {
             if(op == PRINT) //prints path to link
-            {
               printf ("%s\n",path);
-            }
 
             else
             {

@@ -3,9 +3,33 @@
 #include <string.h>
 #include <signal.h>
 #include <limits.h> //PATH_MAX
+#include <sys/types.h>
+#include <unistd.h>
 #include "finder.h"
-#include "signalHandlers.h"
 
+static int parentPid;
+
+void sigint_handler(int signo) // need to find a way to identify child proc
+{
+  pid_t selfPid = getpid ();
+
+  if (selfPid == parentPid){
+    char resp;
+
+    printf("Are you sure you want to terminate (Y/N)?\n");
+    resp = getchar();
+
+    if(resp == 'y' || resp == 'Y'){
+      kill (0, SIGTERM);
+    }
+    kill (0, SIGCONT);
+  }
+  else{
+    raise (SIGSTOP);
+  }
+
+  return;
+}
 
 void print_help_menu ()
 {
@@ -36,8 +60,9 @@ int test_arg(char *argv[]){
 int main (int argc, char *argv[], char *envp[])
 {
   char dir[PATH_MAX];
-
   struct sigaction signal_handler;
+
+  parentPid = getpid();
 
   signal_handler.sa_handler = sigint_handler;
   sigemptyset(&signal_handler.sa_mask);

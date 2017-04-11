@@ -1,7 +1,6 @@
 #ifndef _SFIND_H_
 #define _SFIND_H_
 
-
 /*Prints the instructions for usage*/
 void print_help_menu ();
 

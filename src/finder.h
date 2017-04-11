@@ -27,6 +27,8 @@ char* extract_dir(char *str);
 
 int get_type(char *type);
 
+char* get_new_path (char *str1, char *str2);
+
 int file_destroyer (char *filename, int type);
 
 char* get_path(char *dir, char *sub);

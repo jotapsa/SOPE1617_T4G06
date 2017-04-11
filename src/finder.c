@@ -91,6 +91,15 @@ int get_type(char *type)
   return -1;
 }
 
+char* get_new_path (char *str1, char *str2)
+{
+  char path[strlen(str1) + strlen(str2) + 2]; //plus 2 because of '\0' and '/'
+
+  sprintf(path,"%s/%s", str1, str2); //valid path creation
+
+  return path;
+}
+
 int file_destroyer (char *filename, int type)
 {
   switch(type)
@@ -194,6 +203,7 @@ int search_for_name (char *dir, char *filename, int op)
   pid_t pid;
   int status;
   char output[PATH_MAX];
+  char *path;
 
   if((directory = opendir(dir)) == NULL)
   {
@@ -207,9 +217,7 @@ int search_for_name (char *dir, char *filename, int op)
   {
     if(strcmp(sub->d_name, ".") != 0 && strcmp(sub->d_name, "..") != 0) //We don t want to analyse those
     {
-      char path[strlen(dir) + strlen(sub->d_name) + 2]; //plus 2 because of '\0' and '/'
-
-      sprintf(path,"%s/%s", dir, sub->d_name); //valid path creation
+      path = get_new_path(dir, sub->d_name);
 
       if (lstat(path, &dir_stat) == -1)
       {
@@ -298,9 +306,7 @@ int search_for_type (char *dir, int type, int op)
   {
     if(strcmp(sub->d_name, ".") != 0 && strcmp(sub->d_name, "..") != 0)
     {
-      char path[strlen(dir) + strlen(sub->d_name) + 2]; //plus 2 because of '\0' and '/'
-
-      sprintf(path,"%s/%s", dir, sub->d_name); //valid path creation
+      path = get_new_path(dir, sub->d_name);
 
       if (lstat(path, &dir_stat) == -1)
       {
@@ -328,9 +334,7 @@ int search_for_type (char *dir, int type, int op)
               waitpid(pid, NULL, 0); //wait for sub-process to finish
 
               if(op == PRINT) //prints path to directory
-              {
                 printf ("%s\n", path);
-              }
 
               else
               {
@@ -374,10 +378,7 @@ int search_for_type (char *dir, int type, int op)
           else if(S_ISREG(dir_stat.st_mode) && !S_ISLNK(dir_stat.st_mode)) //act on the file
           {
             if(op == PRINT && type == FILE) //prints path to file THIS FIXED THE FIRST *bug*, NOT SURE WHY XD
-            {
-              sprintf(output,"%s\n",path);
-              write(STDOUT_FILENO,output,strlen(output));
-            }
+              printf("%s\n",path);
 
             else if(op == DELETE && type == FILE) //THIS FIXED THE FIRST *bug*, NOT SURE WHY XD
             {

@@ -173,8 +173,8 @@ int file_destroyer (char *filename, int type)
   return 0;
 }
 
-/*argv[2] references type, argv[3] references filename, argv[4] references action*/
-int searcher_aux (char *filePath, char *argv[], struct dirent *fileInfo_dirent){
+/*argv[2] references type, argv[3] references filename type or mode , argv[4] references action*/
+int searcher_aux (char *filePath, char *argv[], struct stat fileInfo_stat, struct dirent *fileInfo_dirent){
 
   if ((strcmp (argv[2], "-name")==0) && (strcmp(fileInfo_dirent->d_name, argv[3])==0)){
     if (strcmp (argv[4], "-print")==0){
@@ -185,7 +185,30 @@ int searcher_aux (char *filePath, char *argv[], struct dirent *fileInfo_dirent){
     }
   }
   else if (strcmp (argv[2], "-type")==0){
-    sleep(1);
+    if (strcmp (argv[4], "-print")==0){
+      switch (get_type(argv[3])){
+        case FILE:
+          if (S_ISREG(fileInfo_stat.st_mode)){
+            printf ("%s\n", filePath);
+          }
+          break;
+        case FOLDER:
+          if (S_ISDIR(fileInfo_stat.st_mode)){
+            printf ("%s\n", filePath);
+          }
+          break;
+        case LINK:
+          if (S_ISLNK(fileInfo_stat.st_mode)){
+            printf ("%s\n", filePath);
+          }
+          break;
+        default:
+          break;
+      }
+    }
+    else if (strcmp(argv[4], "-delete")==0){
+      sleep(1);
+    }
   }
   else if (strcmp (argv[2], "-perm")==0){
     sleep(1);
@@ -237,21 +260,19 @@ int searcher (char *dirPath, char *argv[]){
         }
         else{
           //waitpid(pid, NULL, 0); // for now
-          searcher_aux (filePath, argv, fileInfo_dirent);
+          searcher_aux (filePath, argv, fileInfo_stat, fileInfo_dirent);
         }
 
       }
       //regular file
       else if(S_ISREG(fileInfo_stat.st_mode) || S_ISLNK(fileInfo_stat.st_mode)){
-        searcher_aux (filePath, argv, fileInfo_dirent);
+        searcher_aux (filePath, argv, fileInfo_stat, fileInfo_dirent);
       }
-
-      waitpid (-1, &status, WNOHANG);
     }
   }
 
-  while (waitpid (-1, &status, WNOHANG) >0); // Wait for every child process to terminate.
-  
+  while (wait(&status) >0); // Wait for every child process to terminate.
+
   return 0;
 }
 /*

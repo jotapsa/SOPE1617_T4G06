@@ -1,6 +1,12 @@
 #ifndef _FINDER_H_
 #define _FINDER_H_
 
+//***************************
+//Foward dependencies
+
+#include <dirent.h>
+#include <sys/stat.h>
+
 #define MAX_STR_LEN 512
 
 /*Parameters*/
@@ -31,11 +37,11 @@ char* get_important_digits(char *digits);
 
 int compare_file_perm(char *perm, mode_t file);
 
-char* get_new_path (char *str1, char *str2);
+char* getFilePath (char *dirPath, char *fileName);
 
 int file_destroyer (char *filename, int type);
 
-char* get_path(char *dir, char *sub);
+int searcher_aux (char *filePath, char *argv[], struct stat fileInfo_stat, struct dirent *fileInfo_dirent);
 
 int searcher (char *dir, char *argv[]);
 

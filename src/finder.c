@@ -10,20 +10,20 @@
 #include <dirent.h> //Type DIR
 #include "finder.h"
 
-
-void sigint_handler(int signo)
+void sigint_handler(int signo) // need to find a way to identify child proc
 {
   char resp;
 
-  while(resp != 'y' && resp != 'Y' && resp != 'n' && resp != 'N' )
-  {
-    printf("Are you sure you want to terminate (Y/N)?\n");
-    resp = getchar();
+  //kill (0, SIGSTOP);
+
+  printf("Are you sure you want to terminate (Y/N)?\n");
+  resp = getchar();
+
+  if(resp == 'y' || resp == 'Y'){
+    kill (0, SIGTERM);
   }
 
-  if(resp == 'y' || resp == 'Y')
-  exit(0);
-
+  //kill (0, SIGCONT);
   return;
 }
 
@@ -302,7 +302,7 @@ int search_for_name (char *dir, char *filename, int op)
       else if(S_ISREG(dir_stat.st_mode) && strcmp(sub->d_name, filename) == 0) //found a regular file && and the name of the file correspond to the filename we are looking for
       {
         if(op == PRINT) //prints the directory
-          printf("%s\n", path);
+        printf("%s\n", path);
         else //destroys the found file
         {
           if(file_destroyer(sub->d_name, FILE) == 1)
@@ -511,8 +511,6 @@ int search_for_perm (char *dir, char *perm, int op)
         }
         else if(pid > 0)
         {
-          waitpid(pid, NULL, 0);
-
           if(compare_file_perm(perm, dir_stat.st_mode) == 0 && op == PRINT)
             printf ("%s\n", path);
 

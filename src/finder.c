@@ -8,6 +8,7 @@
 #include <sys/wait.h> //waitpid
 #include <sys/stat.h> // struct stat
 #include <dirent.h> //Type DIR
+
 #include "finder.h"
 
 void sigint_handler(int signo) // need to find a way to identify child proc
@@ -55,31 +56,13 @@ int test_arg(char *argv[]){
   return 0;
 }
 
-/* Returns the the pathname to start seaching*/
-char* extract_dir(char *str){
-  char buff[PATH_MAX];
-  char* dir;
-  struct stat dir_inf;
-
-  if(lstat(str, &dir_inf) == -1){
-    perror (str);
-    exit (1);
-  }
-  else
-    chdir(str);
-
-  printf ("%s\n",getcwd(buff, PATH_MAX));
-  return getcwd(buff, PATH_MAX);
-}
-
-
-int get_type(char *type)
+int getType(char *type)
 {
   if(strcmp("f", type) == 0)
   return FILE;
 
   else if (strcmp("d", type) == 0)
-  return FOLDER;
+  return DIRECTORY;
 
   else if (strcmp("l", type) == 0)
   return LINK;
@@ -88,28 +71,10 @@ int get_type(char *type)
   return -1;
 }
 
-char* get_important_digits(char *digits)
+int compare_file_perm(char *perm, mode_t st_mode)
 {
-  char *important = malloc(5*sizeof(char)); //4 digits plus '\0'
-
-  important[3] = digits[strlen(digits) - 1];
-
-  important[2] = digits[strlen(digits) - 2];
-
-  important[1] = digits[strlen(digits) - 3];
-
-  important[0] = digits[strlen(digits) - 4];
-
-  return important;
-}
-
-int compare_file_perm(char *perm, mode_t file)
-{
-  char *file_perm = malloc(10*sizeof(char)); //to make sure it fits xD
-
-  sprintf(file_perm, "%o", file);
-
-  file_perm = get_important_digits(file_perm);
+  char *file_perm = malloc(5*sizeof(char));
+  sprintf(file_perm, "%o", st_mode & (S_IRWXU | S_IRWXG | S_IRWXO));
 
   return strcmp(perm, file_perm);
 }
@@ -126,7 +91,7 @@ int file_destroyer (char *filename, int type)
 {
   switch(type)
   {
-    case FOLDER:
+    case DIRECTORY:
     {
       char cmd[strlen("rm -fR ") + strlen(filename) + 3]; //prepares string with enough size for rm command
       strcpy(cmd, "rm -fR '"); //the ' is to make sure files with spaces in the name are deleted too
@@ -173,7 +138,7 @@ int file_destroyer (char *filename, int type)
   return 0;
 }
 
-/*argv[2] references type, argv[3] references filename type or mode , argv[4] references action*/
+/*argv[2] references type, argv[3] references filename type or mode_t , argv[4] references action*/
 int searcher_aux (char *filePath, char *argv[], struct stat fileInfo_stat, struct dirent *fileInfo_dirent){
 
   if ((strcmp (argv[2], "-name")==0) && (strcmp(fileInfo_dirent->d_name, argv[3])==0)){
@@ -186,33 +151,39 @@ int searcher_aux (char *filePath, char *argv[], struct stat fileInfo_stat, struc
   }
   else if (strcmp (argv[2], "-type")==0){
     if (strcmp (argv[4], "-print")==0){
-      switch (get_type(argv[3])){
+      switch (getType(argv[3])){
         case FILE:
-          if (S_ISREG(fileInfo_stat.st_mode)){
-            printf ("%s\n", filePath);
-          }
-          break;
-        case FOLDER:
-          if (S_ISDIR(fileInfo_stat.st_mode)){
-            printf ("%s\n", filePath);
-          }
-          break;
+        if (S_ISREG(fileInfo_stat.st_mode)){
+          printf ("%s\n", filePath);
+        }
+        break;
+        case DIRECTORY:
+        if (S_ISDIR(fileInfo_stat.st_mode)){
+          printf ("%s\n", filePath);
+        }
+        break;
         case LINK:
-          if (S_ISLNK(fileInfo_stat.st_mode)){
-            printf ("%s\n", filePath);
-          }
-          break;
+        if (S_ISLNK(fileInfo_stat.st_mode)){
+          printf ("%s\n", filePath);
+        }
+        break;
         default:
-          break;
+        break;
       }
     }
     else if (strcmp(argv[4], "-delete")==0){
       sleep(1);
     }
   }
-  else if (strcmp (argv[2], "-perm")==0){
-    sleep(1);
+  else if ((strcmp (argv[2], "-perm")==0) && (compare_file_perm (argv[3], fileInfo_stat.st_mode)==0)){
+    if (strcmp (argv[4], "-print")==0){
+      printf("%s\n", filePath);
+    }
+    else if (strcmp(argv[4], "-delete")==0){
+      sleep(1);
+    }
   }
+
   return 0;
 }
 
@@ -275,318 +246,3 @@ int searcher (char *dirPath, char *argv[]){
 
   return 0;
 }
-/*
-int search_for_name (char *dir, char *filename, int op)
-{
-  DIR *directory;
-  struct dirent *fileInfo_dirent;
-  struct stat fileInfo_stat;
-  pid_t pid;
-  int status;
-  char output[PATH_MAX];
-  char *path;
-
-  if((directory = opendir(dir)) == NULL)
-  {
-    perror (dir);
-    exit (1);
-  }
-
-  chdir(dir);
-
-  while((fileInfo_dirent = readdir(directory)) != NULL) //it will go through all the things in the directory
-  {
-    if(strcmp(fileInfo_dirent->d_name, ".") != 0 && strcmp(fileInfo_dirent->d_name, "..") != 0) //We don t want to analyse those
-    {
-      path = getFilePath(dir, fileInfo_dirent->d_name);
-
-      if (lstat(path, &fileInfo_stat) == -1)
-      {
-        perror (path);
-        exit (1);
-      }
-
-      if(S_ISDIR(fileInfo_stat.st_mode) && !S_ISLNK(fileInfo_stat.st_mode)) //found a directory
-      {
-        pid = fork();
-
-        if(pid == 0) //the new process
-        {
-          search_for_name(path,filename, op);
-
-          exit(0);
-        }
-
-        else if(pid > 0) //the current process has to wait for the new one to finish
-        {
-          waitpid(pid, NULL, 0);
-
-          if(strcmp(fileInfo_dirent->d_name, filename) == 0 && op == PRINT)
-            printf ("%s\n", path);
-
-          else if(strcmp(fileInfo_dirent->d_name, filename) == 0 && op == DELETE)
-          {
-            if(file_destroyer(fileInfo_dirent->d_name, FOLDER) == 1)
-            {
-              printf("Failed to delete %s\n", fileInfo_dirent->d_name);
-              return 1;
-            }
-          }
-        }
-
-        else
-        {
-          perror ("pid");
-          exit(1);
-        }
-      }
-
-      else if(S_ISREG(fileInfo_stat.st_mode) && strcmp(fileInfo_dirent->d_name, filename) == 0) //found a regular file && and the name of the file correspond to the filename we are looking for
-      {
-        if(op == PRINT) //prints the directory
-        printf("%s\n", path);
-        else //destroys the found file
-        {
-          if(file_destroyer(fileInfo_dirent->d_name, FILE) == 1)
-          {
-            printf("Failed to delete %s\n", fileInfo_dirent->d_name);
-            return 1;
-          }
-        }
-      }
-    }
-  }
-  return 0;
-}
-
-int search_for_type (char *dir, int type, int op)
-{
-  DIR *directory;
-  struct dirent *fileInfo_dirent;
-  struct stat fileInfo_stat;
-  pid_t pid;
-  int status;
-  char *path;
-  char output[PATH_MAX];
-
-  if((directory = opendir(dir)) == NULL)
-  {
-    perror (dir);
-    exit (1);
-  }
-
-  if(type == -1)
-    return 1;
-
-  chdir(dir);
-
-  while((fileInfo_dirent = readdir(directory)) != NULL) //it will go through all the things in the directory
-  {
-    if(strcmp(fileInfo_dirent->d_name, ".") != 0 && strcmp(fileInfo_dirent->d_name, "..") != 0)
-    {
-      path = getFilePath(dir, fileInfo_dirent->d_name);
-
-      if (lstat(path, &fileInfo_stat) == -1)
-      {
-        perror (path);
-        exit (1);
-      }
-
-      switch (type)
-      {
-        case FOLDER: //case we are searching for folders/dirs
-        {
-          if(S_ISDIR(fileInfo_stat.st_mode) && !S_ISREG(fileInfo_stat.st_mode) ) //FIRST, create new process and search there
-          {
-            pid = fork();
-
-            if(pid == 0) //new process
-            {
-              search_for_type(path, type, op);
-
-              exit(0);
-            }
-
-            else if(pid > 0) //SECOND, act on the directory
-            {
-              waitpid(pid, NULL, 0); //wait for fileInfo_dirent-process to finish
-
-              if(op == PRINT) //prints path to directory
-                printf ("%s\n", path);
-
-              else
-              {
-                if(file_destroyer(fileInfo_dirent->d_name, FOLDER) == 1)
-                {
-                  printf("Failed to delete %s\n", fileInfo_dirent->d_name);
-                  return 1;
-                }
-              }
-            }
-
-            else
-            {
-              perror ("pid");
-              exit(1);
-            }
-          }
-        }
-        case FILE:
-        {
-          if(S_ISDIR(fileInfo_stat.st_mode) && !S_ISLNK(fileInfo_stat.st_mode)) //create new process and search there
-          {
-            pid = fork();
-
-            if(pid == 0) //new process
-            {
-              search_for_type(path, type, op);
-
-              exit(0);
-            }
-
-            else if(pid > 0) //current process just waits
-              waitpid(pid, NULL, 0);
-
-            else
-            {
-              perror ("pid");
-              exit (1);
-            }
-          }
-          else if(S_ISREG(fileInfo_stat.st_mode) && !S_ISLNK(fileInfo_stat.st_mode)) //act on the file
-          {
-            if(op == PRINT && type == FILE) //prints path to file THIS FIXED THE FIRST *bug*, NOT SURE WHY XD
-              printf("%s\n",path);
-
-            else if(op == DELETE && type == FILE) //THIS FIXED THE FIRST *bug*, NOT SURE WHY XD
-            {
-              if(file_destroyer(fileInfo_dirent->d_name, FILE) == 1)
-              {
-                printf("Failed to delete %s\n", fileInfo_dirent->d_name);
-                return 1;
-              }
-            }
-          }
-        }
-        case LINK:
-        {
-          if(S_ISDIR(fileInfo_stat.st_mode) && !S_ISLNK(fileInfo_stat.st_mode)) //create new process and search there
-          {
-            pid = fork();
-
-            if(pid == 0) //new process
-            {
-              search_for_type(path, type, op);
-
-              exit(0);
-            }
-
-            else if(pid > 0) //current process
-              waitpid(pid, NULL, 0);
-
-            else
-            {
-              perror ("pid");
-              exit (1);
-            }
-          }
-          else if(S_ISLNK(fileInfo_stat.st_mode) && !S_ISREG(fileInfo_stat.st_mode)) //act on the link
-          {
-            if(op == PRINT) //prints path to link
-              printf ("%s\n",path);
-
-            else
-            {
-              if(file_destroyer(fileInfo_dirent->d_name, LINK) == 1)
-              {
-                printf("Failed to delete %s\n", fileInfo_dirent->d_name);
-                return 1;
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-  return 0;
-}
-
-int search_for_perm (char *dir, char *perm, int op)
-{
-  DIR *directory;
-  struct dirent *fileInfo_dirent;
-  struct stat fileInfo_stat;
-  pid_t pid;
-  int status;
-  char *path;
-  char output[PATH_MAX];
-
-  if((directory = opendir(dir)) == NULL)
-  {
-    perror (dir);
-    exit (1);
-  }
-
-  chdir(dir);
-
-  while((fileInfo_dirent = readdir(directory)) != NULL) //it will go through all the things in the directory
-  {
-    if(strcmp(fileInfo_dirent->d_name, ".") != 0 && strcmp(fileInfo_dirent->d_name, "..") != 0) //We don t want to analyse those
-    {
-      path = getFilePath(dir, fileInfo_dirent->d_name);
-
-      if (lstat(path, &fileInfo_stat) == -1)
-      {
-        perror (path);
-        exit (1);
-      }
-
-      if(S_ISDIR(fileInfo_stat.st_mode) && !S_ISLNK(fileInfo_stat.st_mode)) //found a directory
-      {
-        pid = fork();
-
-        if(pid == 0) //the new process
-        {
-          search_for_perm(path, perm, op);
-
-          exit(0);
-        }
-        else if(pid > 0)
-        {
-          if(compare_file_perm(perm, fileInfo_stat.st_mode) == 0 && op == PRINT)
-            printf ("%s\n", path);
-
-          else if(compare_file_perm(perm, fileInfo_stat.st_mode) == 0 && op == DELETE)
-          {
-            if(file_destroyer(fileInfo_dirent->d_name, FOLDER) == 1)
-            {
-              printf("Failed to delete %s\n", fileInfo_dirent->d_name);
-              return 1;
-            }
-          }
-        }
-        else
-        {
-          perror ("pid");
-          exit(1);
-        }
-      }
-      else if((S_ISREG(fileInfo_stat.st_mode) || S_ISLNK(fileInfo_stat.st_mode)) && compare_file_perm(perm, fileInfo_stat.st_mode) == 0) //found a regular file && and the name of the file correspond to the filename we are looking for
-      {
-        if(op == PRINT)
-          printf ("%s\n", path);
-        else if(op == DELETE)
-        {
-          if(file_destroyer(fileInfo_dirent->d_name, FILE) == 1)
-          {
-            printf("Failed to delete %s\n", fileInfo_dirent->d_name);
-            return 1;
-          }
-        }
-      }
-    }
-  }
-
-  return 0;
-}
-*/

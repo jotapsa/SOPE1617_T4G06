@@ -4,8 +4,6 @@
 //***************************
 //Foward dependencies
 
-#include <dirent.h>
-#include <sys/stat.h>
 
 #define MAX_STR_LEN 512
 
@@ -19,7 +17,7 @@
 #define EXECUTE 5
 
 /*Types*/
-#define FOLDER 6
+#define DIRECTORY 6
 #define FILE 7
 #define LINK 8
 
@@ -28,20 +26,6 @@ void print_help_menu ();
 void sigint_handler(int signal);
 
 int test_arg(char *argv[]);
-
-char* extract_dir(char *str);
-
-int get_type(char *type);
-
-char* get_important_digits(char *digits);
-
-int compare_file_perm(char *perm, mode_t file);
-
-char* getFilePath (char *dirPath, char *fileName);
-
-int file_destroyer (char *filename, int type);
-
-int searcher_aux (char *filePath, char *argv[], struct stat fileInfo_stat, struct dirent *fileInfo_dirent);
 
 int searcher (char *dir, char *argv[]);
 

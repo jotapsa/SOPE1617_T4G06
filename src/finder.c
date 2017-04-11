@@ -221,36 +221,37 @@ int searcher (char *dirPath, char *argv[]){
         perror (filePath);
         exit (1);
       }
-    }
-    //directory
-    if(S_ISDIR(fileInfo_stat.st_mode) && !S_ISLNK(fileInfo_stat.st_mode))
-    {
-      pid = fork();
 
-      if (pid == -1){
-        perror ("fork failed");
-        exit(1);
+      //directory
+      if(S_ISDIR(fileInfo_stat.st_mode) && !S_ISLNK(fileInfo_stat.st_mode))
+      {
+        pid = fork();
+
+        if (pid == -1){
+          perror ("fork failed");
+          exit(1);
+        }
+        if (pid == 0) {
+          searcher (filePath, argv);
+          exit(0);
+        }
+        else{
+          //waitpid(pid, NULL, 0); // for now
+          searcher_aux (filePath, argv, fileInfo_dirent);
+        }
+
       }
-      if (pid == 0) {
-        searcher (filePath, argv);
-        exit(0);
-      }
-      else{
-        //waitpid (-1, &status, WNOHANG);
-        waitpid(-1, NULL, 0); // for now
+      //regular file
+      else if(S_ISREG(fileInfo_stat.st_mode) || S_ISLNK(fileInfo_stat.st_mode)){
         searcher_aux (filePath, argv, fileInfo_dirent);
       }
 
+      waitpid (-1, &status, WNOHANG);
     }
-    //regular file
-    else if(S_ISREG(fileInfo_stat.st_mode) || S_ISLNK(fileInfo_stat.st_mode)){
-      searcher_aux (filePath, argv, fileInfo_dirent);
-    }
-
-    //waitpid (-1, &status, WNOHANG);
   }
 
-  //while (waitpid (-1, &status, WNOHANG) >0); // Wait for every child process to terminate.
+  while (waitpid (-1, &status, WNOHANG) >0); // Wait for every child process to terminate.
+  
   return 0;
 }
 /*
@@ -276,7 +277,7 @@ int search_for_name (char *dir, char *filename, int op)
   {
     if(strcmp(fileInfo_dirent->d_name, ".") != 0 && strcmp(fileInfo_dirent->d_name, "..") != 0) //We don t want to analyse those
     {
-      path = get_new_path(dir, fileInfo_dirent->d_name);
+      path = getFilePath(dir, fileInfo_dirent->d_name);
 
       if (lstat(path, &fileInfo_stat) == -1)
       {
@@ -362,7 +363,7 @@ int search_for_type (char *dir, int type, int op)
   {
     if(strcmp(fileInfo_dirent->d_name, ".") != 0 && strcmp(fileInfo_dirent->d_name, "..") != 0)
     {
-      path = get_new_path(dir, fileInfo_dirent->d_name);
+      path = getFilePath(dir, fileInfo_dirent->d_name);
 
       if (lstat(path, &fileInfo_stat) == -1)
       {
@@ -511,7 +512,7 @@ int search_for_perm (char *dir, char *perm, int op)
   {
     if(strcmp(fileInfo_dirent->d_name, ".") != 0 && strcmp(fileInfo_dirent->d_name, "..") != 0) //We don t want to analyse those
     {
-      path = get_new_path(dir, fileInfo_dirent->d_name);
+      path = getFilePath(dir, fileInfo_dirent->d_name);
 
       if (lstat(path, &fileInfo_stat) == -1)
       {

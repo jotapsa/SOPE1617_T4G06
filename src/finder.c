@@ -299,7 +299,7 @@ int search_for_name (char *dir, char *filename, int op)
         }
       }
 
-      else if(S_ISREG(dir_stat.st_mode) && strcmp(sub->d_name, filename) == 0) //found a regular file && and the name of the file correspond to the filename we are looking for
+      else if((S_ISREG(dir_stat.st_mode) || S_ISLNK(dir_stat.st_mode)) && strcmp(sub->d_name, filename) == 0) //found a regular file && and the name of the file correspond to the filename we are looking for
       {
         if(op == PRINT) //prints the directory
           printf("%s\n", path);

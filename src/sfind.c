@@ -41,8 +41,6 @@ int main (int argc, char *argv[], char *envp[])
     {
       strncpy(dir, extract_dir(argv[1]), PATH_MAX);
 
-      printf("dir:\t%s\n", dir);
-
       if(!(test_arg(argv[2], OPTION) && test_arg(argv[4], ACTION)))//checks if OPTION and ACTION are valid
       {
         printf("%s ou %s ARE NOT valid\n", argv[2], argv[4]);

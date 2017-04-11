@@ -1,3 +1,13 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <signal.h>
+#include <limits.h> //PATH_MAX
+#include <sys/types.h>
+#include <unistd.h> //fork
+#include <sys/wait.h> //waitpid
+#include <sys/stat.h> // struct stat
+#include <dirent.h> //Type DIR
 #include "finder.h"
 
 void sigint_handler(int signo) // need to find a way to identify child proc
@@ -58,6 +68,7 @@ char* extract_dir(char *str){
   else
     chdir(str);
 
+  printf ("%s\n",getcwd(buff, PATH_MAX));
   return getcwd(buff, PATH_MAX);
 }
 
@@ -191,16 +202,13 @@ int searcher (char *dir, char *argv[]){
   int status;
   char *path, output[PATH_MAX];
 
-  if((directory = opendir(dir)) == NULL)
+  if((directory = opendir(argv[1])) == NULL)
   {
-    perror (dir);
+    perror (argv[1]);
     exit (1);
   }
 
-  /*if(type == -1)
-    return 1;
-    */
-  chdir(dir);
+  chdir(argv[1]);
 
   while((fileInfo_dirent = readdir(directory)) != NULL) //it will go through all the things in the directory
   {
@@ -242,7 +250,6 @@ int searcher (char *dir, char *argv[]){
   return 0;
 }
 /*
-
 int search_for_name (char *dir, char *filename, int op)
 {
   DIR *directory;

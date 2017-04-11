@@ -11,55 +11,36 @@
 
 #include "finder.h"
 
-void sigint_handler(int signo) // need to find a way to identify child proc
-{
-  char resp;
+search_type getSearchOption (char *option){
+  if (strcmp("-name", option) == 0)
+  return NAME;
 
-  //kill (0, SIGSTOP);
+  if (strcmp("-type", option) == 0)
+  return TYPE;
 
-  printf("Are you sure you want to terminate (Y/N)?\n");
-  resp = getchar();
+  if (strcmp("-perm", option) == 0)
+  return PERMISSION;
 
-  if(resp == 'y' || resp == 'Y'){
-    kill (0, SIGTERM);
-  }
-
-  //kill (0, SIGCONT);
-  return;
+  return -1;
 }
 
-/*Prints the instructions for usage*/
-void print_help_menu ()
-{
-  printf ("\nUsage: sfind DIR -<options>\n\n");
+action_type getActionType (char *action){
+  if (strcmp("-print", action) == 0)
+  return PRINT;
 
-  printf ("Options:\n\t-name string -> search for a file with the name in string\n\n");
-  printf ("\t-type c\n\t\t-> case c = f - search for a normal file\n");
-  printf ("\t\t-> case c = d - search for a directory\n\t\t-> case c = l - search for a link\n\n");
-  printf ("\t-perm mode -> search for a file that has the permissions\n\t\t\tequivalent to the octal number mode\n\n");
+  if (strcmp("-delete", action) == 0)
+  return DELETE;
 
-  printf ("Actions:\n");
-  printf ("\t-print -> shows the found files on the screen\n\n");
-  printf ("\t-delete -> delete the found files\n\n");
-  printf ("\t-exec command -> execute command\n\n");
+  if (strcmp("-exec", action) == 0)
+  return EXECUTE;
+
+  return -1;
 }
 
-/* checks if OPTION and ACTION are valid */
-int test_arg(char *argv[]){
-  if (!(strcmp(argv[2], "-name") == 0 || strcmp(argv[2], "-type") == 0 || strcmp(argv[2], "-perm") == 0)){
-    return 1;
-  }
-  if (!(strcmp(argv[4], "-print") == 0 || strcmp(argv[4], "-delete") == 0 || strcmp(argv[4], "-exec") == 0)){
-    return 1;
-  }
-
-  return 0;
-}
-
-int getType(char *type)
+file_type getFileType (char *type)
 {
   if(strcmp("f", type) == 0)
-  return FILE;
+  return REGULAR;
 
   else if (strcmp("d", type) == 0)
   return DIRECTORY;
@@ -67,22 +48,22 @@ int getType(char *type)
   else if (strcmp("l", type) == 0)
   return LINK;
 
-  else
   return -1;
 }
+
 
 int compare_file_perm(char *perm, mode_t st_mode)
 {
   char *file_perm = malloc(5*sizeof(char));
-  sprintf(file_perm, "%o", st_mode & (S_IRWXU | S_IRWXG | S_IRWXO));
+  sprintf(file_perm, "%#o", st_mode & (S_IRWXU | S_IRWXG | S_IRWXO)); //%#o (Octal) -> 0 prefix inserted.
 
   return strcmp(perm, file_perm);
 }
 
 char* getFilePath (char *dirPath, char *fileName)
 {
-  char *filePath = (char*) malloc((strlen(dirPath) + strlen(fileName) + 2) * sizeof(char));//plus 2 because of '\0' and '/'
-  sprintf(filePath,"%s/%s", dirPath, fileName); //valid path creation
+  char *filePath = (char*) malloc((strlen(dirPath) + strlen(fileName) + 2) * sizeof(char)); //plus 2 because of '\0' and '/'
+  sprintf(filePath,"%s/%s", dirPath, fileName);
 
   return filePath;
 }
@@ -111,7 +92,7 @@ int file_destroyer (char *filename, int type)
         }
       }
     }
-    case FILE:
+    case REGULAR:
     case LINK:
     {
       char cmd[strlen("rm ") + strlen(filename) + 3]; //prepares string with enough size for rm command
@@ -140,48 +121,54 @@ int file_destroyer (char *filename, int type)
 
 /*argv[2] references type, argv[3] references filename type or mode_t , argv[4] references action*/
 int searcher_aux (char *filePath, char *argv[], struct stat fileInfo_stat, struct dirent *fileInfo_dirent){
-
-  if ((strcmp (argv[2], "-name")==0) && (strcmp(fileInfo_dirent->d_name, argv[3])==0)){
-    if (strcmp (argv[4], "-print")==0){
-      printf("%s\n", filePath);
-    }
-    else if (strcmp(argv[4], "-delete")==0){
-      sleep(1);
-    }
-  }
-  else if (strcmp (argv[2], "-type")==0){
-    if (strcmp (argv[4], "-print")==0){
-      switch (getType(argv[3])){
-        case FILE:
-        if (S_ISREG(fileInfo_stat.st_mode)){
-          printf ("%s\n", filePath);
+  switch (getSearchOption(argv[2])){
+    case NAME:
+    {
+      if (strcmp(fileInfo_dirent->d_name, argv[3])==0){
+        switch (getActionType(argv[4])) {
+          case PRINT:
+          printf("%s\n", filePath);
+          break;
+          case DELETE:
+          break;
+          case EXECUTE:
+          break;
         }
-        break;
-        case DIRECTORY:
-        if (S_ISDIR(fileInfo_stat.st_mode)){
-          printf ("%s\n", filePath);
-        }
-        break;
-        case LINK:
-        if (S_ISLNK(fileInfo_stat.st_mode)){
-          printf ("%s\n", filePath);
-        }
-        break;
-        default:
-        break;
       }
     }
-    else if (strcmp(argv[4], "-delete")==0){
-      sleep(1);
+    break;
+    case TYPE:
+      if ((getFileType(argv[3]) == REGULAR && S_ISREG(fileInfo_stat.st_mode))
+      || (getFileType(argv[3]) == DIRECTORY && S_ISDIR(fileInfo_stat.st_mode))
+      || (getFileType(argv[3]) == LINK && S_ISLNK(fileInfo_stat.st_mode))){
+        switch (getActionType(argv[4])) {
+          case PRINT:
+          printf("%s\n", filePath);
+          break;
+          case DELETE:
+          break;
+          case EXECUTE:
+          break;
+        }
+      }
+    break;
+    case PERMISSION:
+    {
+      if (compare_file_perm (argv[3], fileInfo_stat.st_mode)==0){
+        switch (getActionType(argv[4])) {
+          case PRINT:
+          printf("%s\n", filePath);
+          break;
+          case DELETE:
+          break;
+          case EXECUTE:
+          break;
+        }
+      }
     }
-  }
-  else if ((strcmp (argv[2], "-perm")==0) && (compare_file_perm (argv[3], fileInfo_stat.st_mode)==0)){
-    if (strcmp (argv[4], "-print")==0){
-      printf("%s\n", filePath);
-    }
-    else if (strcmp(argv[4], "-delete")==0){
-      sleep(1);
-    }
+    break;
+    default:
+    break;
   }
 
   return 0;

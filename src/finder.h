@@ -7,25 +7,13 @@
 
 #define MAX_STR_LEN 512
 
-/*Parameters*/
-#define OPTION 1
-#define ACTION 2
-
+/*Search Options*/
+typedef enum {NAME, TYPE, PERMISSION} search_type;
 /*Actions*/
-#define PRINT 3
-#define DELETE 4
-#define EXECUTE 5
+typedef enum {PRINT, DELETE, EXECUTE} action_type;
+/*File type*/
+typedef enum {DIRECTORY, REGULAR, LINK} file_type;
 
-/*Types*/
-#define DIRECTORY 6
-#define FILE 7
-#define LINK 8
-
-void print_help_menu ();
-
-void sigint_handler(int signal);
-
-int test_arg(char *argv[]);
 
 int searcher (char *dir, char *argv[]);
 

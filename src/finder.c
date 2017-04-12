@@ -84,12 +84,14 @@ int deleteFile (char *filename, struct stat fileInfo_stat){
   {
     case -1:{
       printf ("fork() failed or waitpid returned an error != EINTR\n");
+      free(cmd);
       return 1;
     }
     break;
 
     case 127:{
       printf ("exec() has failed, and %s was not deleted\n", filename);
+      free(cmd);
       return 1;
     }
     break;
@@ -100,7 +102,7 @@ int deleteFile (char *filename, struct stat fileInfo_stat){
     break;
     */
   }
-
+  free(cmd);
   return 0;
 }
 

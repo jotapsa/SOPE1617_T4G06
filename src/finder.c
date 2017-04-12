@@ -207,6 +207,7 @@ int searcher (char *dirPath, char *argv[]){
       if (lstat(filePath, &fileInfo_stat) == -1)
       {
         perror (filePath);
+        free(filePath); //allocated in getFilePath method
         exit (1);
       }
 
@@ -217,11 +218,13 @@ int searcher (char *dirPath, char *argv[]){
 
         if (pid == -1){
           perror ("fork failed");
+          free(filePath); //allocated in getFilePath method
           exit(1);
         }
         if (pid == 0) {
           searcher (filePath, argv);
-          exit(0);
+          free(filePath); //allocated in getFilePath method
+          exit (0); // we dont want the child to return to main
         }
         else{
           //waitpid(pid, NULL, 0); // Uncommenting this makes the process wait while the son goes through the directory
@@ -233,7 +236,6 @@ int searcher (char *dirPath, char *argv[]){
       else if(S_ISREG(fileInfo_stat.st_mode) || S_ISLNK(fileInfo_stat.st_mode)){
         searcher_aux (filePath, argv, fileInfo_stat, fileInfo_dirent);
       }
-
       free(filePath); //allocated in getFilePath method
     }
   }

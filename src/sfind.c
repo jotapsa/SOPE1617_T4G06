@@ -88,7 +88,6 @@ int main (int argc, char *argv[], char *envp[])
     case 1:  //in case user does not insert a single option
     {
       printf("Type 'sfind -help' for instructions\n");
-      return 0;
     }
     break;
     case 2:
@@ -97,7 +96,6 @@ int main (int argc, char *argv[], char *envp[])
       print_help_menu();
       else
       printf("Type 'sfind -help' for instructions\n");
-      return 0;
     }
     break;
     case 5:
@@ -119,13 +117,11 @@ int main (int argc, char *argv[], char *envp[])
         else
         printf("Success\n");
       }
-      return 0;
     }
     break;
     default:
     {
       printf ("Type 'sfind -help' for instructions\n");
-      return 0;
     }
     break;
   }

@@ -103,8 +103,7 @@ int main (int argc, char *argv[], char *envp[])
     case 5:
     case 7:
     {
-      if(test_arg(argv)
-         
+      if(test_arg(argv))
       {
         printf ("Invalid arguments\n");
         printf ("Type 'sfind -help' for instructions\n");

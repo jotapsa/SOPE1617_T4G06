@@ -94,9 +94,11 @@ int deleteFile (char *filename, struct stat fileInfo_stat){
     }
     break;
 
+    /*
     default:
       exit(1);
     break;
+    */
   }
 
   return 0;
@@ -106,7 +108,7 @@ int execOnFile (char *filename, char *argv[]){
   /*
   Write here
   */
-  
+  sleep (1);
   return 0;
 }
 
@@ -126,6 +128,8 @@ int searcher_aux (char *filePath, char *argv[], struct stat fileInfo_stat, struc
           case EXECUTE:
             execOnFile (filePath, argv);
           break;
+          default:
+          break;
         }
       }
     }
@@ -144,6 +148,8 @@ int searcher_aux (char *filePath, char *argv[], struct stat fileInfo_stat, struc
           case EXECUTE:
             execOnFile (filePath, argv);
           break;
+          default:
+          break;
         }
       }
     break;
@@ -159,6 +165,8 @@ int searcher_aux (char *filePath, char *argv[], struct stat fileInfo_stat, struc
           break;
           case EXECUTE:
             execOnFile (filePath, argv);
+          break;
+          default:
           break;
         }
       }

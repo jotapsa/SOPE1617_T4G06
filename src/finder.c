@@ -108,9 +108,11 @@ int deleteFile (char *filename, struct stat fileInfo_stat){
 }
 
 int execOnFile (char *filename, char *argv[]){
-  /*
-  Write here
-  */
+  
+  if(execlp(argv[5],argv[5],filename,NULL) == -1){
+    printf("Invalid command!\n");
+  }
+
   sleep (1);
   return 0;
 }

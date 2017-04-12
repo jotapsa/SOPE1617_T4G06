@@ -58,7 +58,7 @@ int test_arg(char *argv[]){
     //validar comando ?
     //aqui! if (strcmp(argv[5], "commando") == 0) exemplo
 
-    if (argv[6], ";" != 0){
+    if (strcmp(argv[7], ";") != 0){
       return 1;
     }
   }

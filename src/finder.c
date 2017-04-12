@@ -108,16 +108,22 @@ int deleteFile (char *filename, struct stat fileInfo_stat){
 }
 
 int execOnFile (char *filename, char *argv[]){
-  
+
   if(execlp(argv[5],argv[5],filename,NULL) == -1){
-    printf("Invalid command!\n");
+    perror("Invalid command");
+    return 1;
   }
 
-  sleep (1);
+  /*
+  char *cmd = (char*) malloc ((strlen(argv[5]) + strlen(filename) + 4)*sizeof(char)); //allocates space for cmdstring
+  sprintf (cmd, "%s '%s'", argv[5], filename);
+  system (cmd);
+  free(cmd);
+  */
   return 0;
 }
 
-/*argv[2] references type, argv[3] references filename type or mode_t , argv[4] references action*/
+/*argv[2] references type, argv[3] references filename type or mode_t , argv[4] references action, argv[5] if received is the command */
 int searcher_aux (char *filePath, char *argv[], struct stat fileInfo_stat, struct dirent *fileInfo_dirent){
   switch (getSearchOption(argv[2])){
     case NAME:
@@ -229,7 +235,8 @@ int searcher (char *dirPath, char *argv[]){
           exit (0); // we dont want the child to return to main
         }
         else{
-          //waitpid(pid, NULL, 0); // Uncommenting this makes the process wait while the son goes through the directory
+          //Commenting the line below makes the current process keep on going, while its fine for -print and -delete makes the program unstable when doing -exec
+          waitpid(pid, NULL, 0); // Uncommenting this makes the process wait while the son goes through the directory
           searcher_aux (filePath, argv, fileInfo_stat, fileInfo_dirent);
         }
 

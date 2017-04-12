@@ -14,7 +14,7 @@ typedef enum {PRINT, DELETE, EXECUTE} action_type;
 /*File type*/
 typedef enum {DIRECTORY, REGULAR, LINK} file_type;
 
-
+/*Searches a given directory recursively and does what is asked within the parameters */
 int searcher (char *dir, char *argv[]);
 
 #endif //_FINDER_H_

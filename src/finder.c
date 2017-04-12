@@ -54,10 +54,14 @@ file_type getFileType (char *type)
 
 int compare_file_perm(char *perm, mode_t st_mode)
 {
+  int res;
   char *file_perm = malloc(5*sizeof(char));
-  sprintf(file_perm, "%#o", st_mode & (S_IRWXU | S_IRWXG | S_IRWXO)); //%#o (Octal) -> 0 prefix inserted.
 
-  return strcmp(perm, file_perm);
+  sprintf(file_perm, "%#o", st_mode & (S_IRWXU | S_IRWXG | S_IRWXO)); //%#o (Octal) -> 0 prefix inserted.
+  res = strcmp(perm, file_perm);
+
+  free(file_perm);
+  return res;
 }
 
 char* getFilePath (char *dirPath, char *fileName)
@@ -96,11 +100,8 @@ int deleteFile (char *filename, struct stat fileInfo_stat){
     }
     break;
 
-    /*
     default:
-      exit(1);
     break;
-    */
   }
   free(cmd);
   return 0;
@@ -139,7 +140,7 @@ int searcher_aux (char *filePath, char *argv[], struct stat fileInfo_stat, struc
     case TYPE:
       if ((getFileType(argv[3]) == REGULAR && S_ISREG(fileInfo_stat.st_mode))
       || (getFileType(argv[3]) == DIRECTORY && S_ISDIR(fileInfo_stat.st_mode))
-      || (getFileType(argv[3]) == LINK && S_ISLNK(fileInfo_stat.st_mode))){
+      || (getFileType(argv[3]) == LINK && S_ISLNK(fileInfo_stat.st_mode))){ //if we are looking for regular/directory/link, and it is a regular file/directory/link
         switch (getActionType(argv[4])) {
           case PRINT:
             printf("%s\n", filePath);
@@ -195,7 +196,6 @@ int searcher (char *dirPath, char *argv[]){
     exit (1);
   }
 
-  //printf ("Searching %s\n", dirPath);
   chdir(dirPath);
 
   while((fileInfo_dirent = readdir(directory)) != NULL) //it will go through all the things in the directory
@@ -224,7 +224,7 @@ int searcher (char *dirPath, char *argv[]){
           exit(0);
         }
         else{
-          //waitpid(pid, NULL, 0); // for now
+          //waitpid(pid, NULL, 0); // Uncommenting this makes the process wait while the son goes through the directory
           searcher_aux (filePath, argv, fileInfo_stat, fileInfo_dirent);
         }
 
@@ -233,9 +233,10 @@ int searcher (char *dirPath, char *argv[]){
       else if(S_ISREG(fileInfo_stat.st_mode) || S_ISLNK(fileInfo_stat.st_mode)){
         searcher_aux (filePath, argv, fileInfo_stat, fileInfo_dirent);
       }
+
+      free(filePath); //allocated in getFilePath method
     }
   }
-
   while (wait(&status) >0); // Wait for every child process to terminate.
 
   return 0;

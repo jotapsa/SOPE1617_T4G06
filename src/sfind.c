@@ -54,6 +54,15 @@ int test_arg(char *argv[]){
     return 1;
   }
 
+  if (strcmp (argv[4], "-exec") ==0){
+    //validar comando ?
+    //aqui!
+
+    if (argv[6], ";" != 0){
+      return 1;
+    }
+  }
+
   return 0;
 }
 
@@ -92,7 +101,7 @@ int main (int argc, char *argv[], char *envp[])
     }
     break;
     case 5:
-    case 8:
+    case 7:
     {
       if(test_arg(argv))
       {

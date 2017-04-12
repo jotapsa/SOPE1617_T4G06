@@ -102,6 +102,14 @@ int deleteFile (char *filename, struct stat fileInfo_stat){
   return 0;
 }
 
+int execOnFile (char *filename, char *argv[]){
+  /*
+  Write here
+  */
+  
+  return 0;
+}
+
 /*argv[2] references type, argv[3] references filename type or mode_t , argv[4] references action*/
 int searcher_aux (char *filePath, char *argv[], struct stat fileInfo_stat, struct dirent *fileInfo_dirent){
   switch (getSearchOption(argv[2])){
@@ -116,6 +124,7 @@ int searcher_aux (char *filePath, char *argv[], struct stat fileInfo_stat, struc
             deleteFile (filePath, fileInfo_stat);
           break;
           case EXECUTE:
+            execOnFile (filePath, argv);
           break;
         }
       }
@@ -133,6 +142,7 @@ int searcher_aux (char *filePath, char *argv[], struct stat fileInfo_stat, struc
             deleteFile (filePath, fileInfo_stat);
           break;
           case EXECUTE:
+            execOnFile (filePath, argv);
           break;
         }
       }
@@ -148,6 +158,7 @@ int searcher_aux (char *filePath, char *argv[], struct stat fileInfo_stat, struc
             deleteFile (filePath, fileInfo_stat);
           break;
           case EXECUTE:
+            execOnFile (filePath, argv);
           break;
         }
       }

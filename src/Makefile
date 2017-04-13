@@ -13,6 +13,7 @@ OBJECTS = $(SOURCES:.c=.o)
 .PHONY : all
 all : $(OBJECTS)
 	$(CC) $(CCFLAGS) $(OBJECTS) -o $(PROG)
+	rm -f $(OBJECTS)
 
 # To obtain object files
 %.o: %.cpp
@@ -21,4 +22,4 @@ all : $(OBJECTS)
 # To remove generated files
 .PHONY: clean
 clean:
-	rm -f $(EXEC) $(OBJECTS)
+	rm -f $(OBJECTS) $(PROG)

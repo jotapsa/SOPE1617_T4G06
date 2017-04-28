@@ -1,2 +1,0 @@
-# SOPE1617_T4G06
-sfind

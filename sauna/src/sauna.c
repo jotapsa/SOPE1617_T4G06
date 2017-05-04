@@ -5,8 +5,6 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#include <sys/stat.h>
-
 
 int createRejectsFIFO (const char* file){
   struct stat buf;

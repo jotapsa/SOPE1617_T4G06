@@ -3,17 +3,29 @@
 
 COMPILER_TYPE= gnu
 CC = gcc
-CCFLAGS= -Wall
+CCFLAGS= -Wall -pthread
 
-PROG = sauna.out
+SAUNA = sauna.out
+SAUNA_SRC = sauna.c
+SAUNA_OBJ = $(SAUNA_SRC:.c=.o)
 
-SOURCES = $(wildcard *.c)
-OBJECTS = $(SOURCES:.c=.o)
+GERADOR = gerador.out
+GERADOR_SRC = gerador.c
+GERADOR_OBJ = $(GERADOR_SRC:.c=.o)
+
+ALL = sauna gerador
+
+SOURCES = shared.c
+SHARED_OBJ = $(SOURCES:.c=.o)
 
 .PHONY : all
-all : $(OBJECTS)
-	$(CC) $(CCFLAGS) $(OBJECTS) -o $(PROG)
-	rm -f $(OBJECTS)
+all : $(ALL) clean
+
+sauna : $(SAUNA_OBJ) $(SHARED_OBJ)
+	$(CC) $(CCFLAGS) $< $(SHARED_OBJ) -o $(SAUNA)
+
+gerador : $(GERADOR_OBJ) $(SHARED_OBJ)
+	$(CC) $(CCFLAGS) $< $(SHARED_OBJ) -o $(GERADOR)
 
 # To obtain object files
 %.o: %.cpp
@@ -22,4 +34,4 @@ all : $(OBJECTS)
 # To remove generated files
 .PHONY: clean
 clean:
-	rm -f $(OBJECTS) $(PROG)
+	rm -f $(SAUNA_OBJ) $(GERADOR_OBJ) $(SHARED_OBJ) $(PROG)

@@ -2,6 +2,8 @@
 #include <stdlib.h> //mkfifo, exit
 #include <unistd.h> //unlink
 #include <sys/stat.h>  //lstatq
+#include <errno.h> //errno
+#include <limits.h> //ULONG_MAX
 
 int createFIFO (const char* file){
   struct stat buf;
@@ -30,4 +32,29 @@ int createFIFO (const char* file){
   }
 
   return 0;
+}
+
+unsigned long parse_ulong(char *str, int base){
+  char *endptr;
+  unsigned long val;
+
+  errno = 0; //the program should set errno to 0 before calling strtoul
+
+  val = strtoul(str, &endptr, base);
+  if (errno == ERANGE && val == ULONG_MAX ){
+    fprintf (stderr, "strtoul overflow\n");
+    return ULONG_MAX;
+  }
+
+  if (errno != 0 && val == 0) {
+    fprintf (stderr, "strtoul: base not supported or no digits seen\n");
+    return ULONG_MAX;
+  }
+
+  if (endptr == str) {
+	  fprintf (stderr, "parse_long: no digits were found in %s \n", str);
+	  return ULONG_MAX;
+  }
+
+  return val;
 }

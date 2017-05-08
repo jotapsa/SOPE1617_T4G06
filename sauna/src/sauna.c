@@ -22,6 +22,20 @@ void updateSlots (int change){
   pthread_mutex_unlock (&mut);
 }
 
+void *fulfillReq (void *arg){
+  struct timespec req;
+  unsigned long milliseconds = *(unsigned long *) arg;
+
+  req.tv_sec = milliseconds / 1000;
+  req.tv_nsec = (milliseconds % 1000) * 1000000; //convert the remainder to nsec
+
+  if (nanosleep(&req, NULL)){
+    fprintf(stderr, "Error nanosleep\n");
+  }
+
+  return NULL;
+}
+
 int main  (int argc, char *argv[], char *envp[]){
   info_t info;
   info.t0 = clock ();
@@ -37,16 +51,21 @@ int main  (int argc, char *argv[], char *envp[]){
   int bytes;
   request_t req;
 
+  sauna_t sauna;
+
   if (argc != 2){
     print_help_menu ();
     exit (0);
   }
   else{
-    nrPlaces = parse_ulong (argv[1], 10);
-    if (nrPlaces == ULONG_MAX){
+    sauna.total = parse_ulong (argv[1], 10);
+    if (sauna.total == ULONG_MAX){
       exit(1);
     }
+    sauna.free = sauna.total;
   }
+
+  //pthread_t tid[sauna.total];
 
   if (checkPathREG(registerPath) != 0){
     exit(1);
@@ -72,10 +91,18 @@ int main  (int argc, char *argv[], char *envp[]){
     fprintf(stderr, "Error opening file %s\n", entriesFIFOPath);
     exit (2);
   }
-  getchar ();
 
   //Read from the ENTRIES FIFO
   while ((bytes = read (info.entriesFileDes, &req, sizeof(request_t)))>0){
+    if ((sauna.free == sauna.total) && (sauna.total>0)){
+      //first request
+      sauna.gender = req.gender;
+      sauna.free --;
+      //pthread_create (&tid[], NULL, fulfillReq, &req.dur);
+    }
+    else if ((sauna.free<sauna.total) && (sauna.free>0)){
+      //still slots available
+    }
     printf ("p%lu %c t%lu\n", req.id, req.gender, req.dur);
   }
 

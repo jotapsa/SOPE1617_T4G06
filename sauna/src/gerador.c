@@ -99,7 +99,7 @@ int main  (int argc, char *argv[], char *envp[]){
     fprintf(stderr, "Error opening file %s\n", entriesFIFOPath);
     exit (2);
   }
-  printf("antes de criar thread\n" );
+  
   pthread_create (&tid[0], NULL, genRequests, &info);
 
   pthread_join (tid[0], NULL);

@@ -9,13 +9,17 @@ typedef struct {
   int registerFileDes;
 } info_t;
 
-
 typedef struct {
   unsigned long id;
   char gender;
   unsigned long dur;
   int denials;
 } request_t;
+
+typedef struct {
+  unsigned long total, free;
+  char gender;
+} sauna_t;
 
 /* Creates FIFO file, only if one doesn't already exist in the specified path*/
 int createFIFO (const char* file);

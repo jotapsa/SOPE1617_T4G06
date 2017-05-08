@@ -15,19 +15,19 @@ int createFIFO (const char* file){
 
     if (unlink(file) == -1){
       fprintf (stderr, "Error removing File\n");
-      exit (1);
+      return 1;
     }
 
     if (mkfifo(file, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH) == -1){
       fprintf (stderr, "Error creating FIFO\n");
-      exit (1);
+      return 1;
     }
 
   }
   else{
     if (mkfifo(file, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH) == -1){
       fprintf (stderr, "Error creating FIFO\n");
-      exit (1);
+      return 1;
     }
   }
 

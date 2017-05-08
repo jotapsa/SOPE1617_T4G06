@@ -1,7 +1,9 @@
 #include <stdio.h>
+#include <string.h> //strlen
 #include <time.h>
 #include <stdlib.h> //rand, exit...
 #include <unistd.h> //pid_t
+#include <fcntl.h> //file handling
 #include <pthread.h>
 #include <limits.h> //ULONG_MAX
 
@@ -22,16 +24,21 @@ char genGender (){
   }
 }
 
-void genRequests (void *arg){
-  char *req = malloc (sizeof(char)*100);
+/*
+  arg - entriesFileDes
+*/
+void *genRequests (void *arg){
+  char *req = malloc (sizeof(char)*27);
   char G;
   unsigned long utilTime;
+  int entriesFileDes = *(int *)arg;
 
-  for (unsigned long i=1; i<nrReq; i++){
+  for (unsigned long i=1; i<=nrReq; i++){
     G = genGender();
     utilTime = (rand()%maxTime)+1; //not a uniform distribution
-
-    sprintf (req, "p%lu %c t%lu", i, G, utilTime);
+    sprintf (req, "p%lu %c t%lu\n", i, G, utilTime);
+    //printf ("%s", req);
+    write (entriesFileDes, req, strlen(req));
   }
 
   free (req);
@@ -61,6 +68,25 @@ int main  (int argc, char *argv[], char *envp[]){
     if (maxTime == ULONG_MAX || maxTime > RAND_MAX){
       exit (1);
     }
+  }
+
+  if (createFIFO (rejectsFIFOPath) != 0 || createFIFO (entriesFIFOPath) != 0){
+    exit (1);
+  }
+
+  //since we dont give the O_NONBLOCK FLAG to open the process must wait until some other process opens the FIFO for reading
+  if ((entriesFileDes=open(entriesFIFOPath, O_WRONLY| O_TRUNC | O_SYNC))==-1){
+    fprintf(stderr, "Error opening file %s\n", entriesFIFOPath);
+    exit (2);
+  }
+
+  pthread_create (&tid[0], NULL, genRequests, &entriesFileDes);
+
+  pthread_join (tid[0], NULL);
+
+  if (close (entriesFileDes) == -1){
+    fprintf(stderr, "Error closing file %s\n", entriesFIFOPath);
+    exit (3);
   }
 
   return 0;

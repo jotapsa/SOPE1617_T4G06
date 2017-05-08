@@ -15,41 +15,37 @@ void print_help_menu (){
     printf ("\nUsage: gerador <nr. pedidos> <max. utilizacao>\n\n");
 }
 
-char genGender (){
-  if (rand()%2==0){
-    return 'M';
-  }
-  else{
-    return 'F';
-  }
-}
-
 /*
   arg - fileDes
 */
 void *genRequests (void *arg){
   clock_t t1;
-  char *req = malloc (sizeof(char)*27);
-  char G;
-  unsigned long utilTime;
+  request_t req;
+  char *reg = malloc (sizeof(char)*62);
+  double long elapsedTime=0;
   info_t *info = (info_t *)arg;
 
   for (unsigned long i=1; i<=nrReq; i++){
-    G = genGender();
-    utilTime = (rand()%maxTime)+1; //not a uniform distribution
-    snprintf (req, 27,"p%lu %c t%lu\n", i, G, utilTime);
-    printf ("%s", req);
-    write (info->entriesFileDes, req, strlen(req));
+    req.id = i;
+    req.gender = (rand()%2) ? 'M' : 'F';
+    req.dur = (rand()%maxTime)+1; //not a uniform distribution
+    write (info->entriesFileDes, &req, sizeof(request_t));
+
+    t1 = clock();
+    elapsedTime = ((t1-info->t0) / CLOCKS_PER_SEC)*1000;
+    snprintf (reg, 62, "%Lf - %d - %lu: %c - %lu - PEDIDO\n", elapsedTime, info->pid, req.id, req.gender, req.dur);
+    printf ("%s", reg);
+    write (info->registerFileDes, reg, strlen(reg));
   }
 
-  free (req);
+  free (reg);
 }
 
 int main  (int argc, char *argv[], char *envp[]){
-
   info_t info;
-  clock_t end;
   info.t0 = clock ();
+
+  clock_t end;
 
   srand(time(NULL)); //initialize the seed from the current time
 
@@ -93,14 +89,11 @@ int main  (int argc, char *argv[], char *envp[]){
     exit (1);
   }
 
-  printf("antes de abrir rejeitados\n" );
-
   if ((info.rejectsFileDes = open (rejectsFIFOPath, O_RDONLY)) == -1){
     fprintf(stderr, "Error opening file %s\n", rejectsFIFOPath);
     exit (2);
   }
 
-    printf("antes de abrir entradas\n" );
   //since we dont give the O_NONBLOCK FLAG to open the process must wait until some other process opens the FIFO for reading
   if ((info.entriesFileDes=open(entriesFIFOPath, O_WRONLY| O_TRUNC | O_SYNC))==-1){
     fprintf(stderr, "Error opening file %s\n", entriesFIFOPath);

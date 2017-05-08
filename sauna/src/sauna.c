@@ -4,27 +4,38 @@
 #include <time.h>
 #include <fcntl.h> //file handling
 #include <limits.h> //ULONG_MAX
+#include <string.h> //strtok
+#include <pthread.h>
 
 #include "shared.h"
 
-int nrPlaces;
+pthread_mutex_t mut=PTHREAD_MUTEX_INITIALIZER; // mutex para a s.c.
+int nrPlaces; //variaveis partilhadas
 
 void print_help_menu (){
     printf ("\nUsage: sauna <n. lugares>\n\n");
 }
 
+void updateSlots (int change){
+  pthread_mutex_lock (&mut);
+  nrPlaces += change;
+  pthread_mutex_unlock (&mut);
+}
+
 int main  (int argc, char *argv[], char *envp[]){
   info_t info;
-  clock_t end;
   info.t0 = clock ();
 
-  srand(time(NULL)); //initialize the seed from the current time
+  clock_t end;
 
   info.pid = getpid();
   char *rejectsFIFOPath = "/tmp/rejeitados";
   char *entriesFIFOPath = "/tmp/entrada";
   char *registerPath = malloc(15*sizeof(char)); //pid_t is a signed integer
   snprintf(registerPath, 15, "/tmp/bal.%d", info.pid);
+
+  int bytes;
+  request_t req;
 
   if (argc != 2){
     print_help_menu ();
@@ -51,22 +62,22 @@ int main  (int argc, char *argv[], char *envp[]){
     exit (1);
   }
 
-  printf("antes de abrir rejeitados\n" );
-
   //since we dont give the O_NONBLOCK FLAG to open the process must wait until some other process opens the FIFO for reading
   if ((info.rejectsFileDes = open (rejectsFIFOPath, O_WRONLY | O_TRUNC | O_SYNC)) == -1){
     fprintf(stderr, "Error opening file %s\n", rejectsFIFOPath);
     exit (2);
   }
 
-  printf("antes de abrir entradas\n" );
-
-  if ((info.entriesFileDes=open (entriesFIFOPath, O_RDONLY))==-1){
+  if ((info.entriesFileDes = open (entriesFIFOPath, O_RDONLY))==-1){
     fprintf(stderr, "Error opening file %s\n", entriesFIFOPath);
     exit (2);
   }
-
   getchar ();
+
+  //Read from the ENTRIES FIFO
+  while ((bytes = read (info.entriesFileDes, &req, sizeof(request_t)))>0){
+    printf ("p%lu %c t%lu\n", req.id, req.gender, req.dur);
+  }
 
   if (close (info.entriesFileDes) == -1){
     fprintf(stderr, "Error closing file %s\n", entriesFIFOPath);

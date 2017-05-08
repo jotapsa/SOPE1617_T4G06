@@ -1,7 +1,6 @@
 #ifndef _SHARED_H_
 #define _SHARED_H_
 
-
 typedef struct {
   clock_t t0;
   pid_t pid;
@@ -9,6 +8,14 @@ typedef struct {
   int entriesFileDes;
   int registerFileDes;
 } info_t;
+
+
+typedef struct {
+  unsigned long id;
+  char gender;
+  unsigned long dur;
+  int denials;
+} request_t;
 
 /* Creates FIFO file, only if one doesn't already exist in the specified path*/
 int createFIFO (const char* file);

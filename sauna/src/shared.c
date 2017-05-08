@@ -34,6 +34,23 @@ int createFIFO (const char* file){
   return 0;
 }
 
+int checkPathREG (const char* file){
+  struct stat buf;
+
+  if (lstat (file, &buf) == 0){
+    if S_ISREG (buf.st_mode){
+      return 0; //exists and is a regularFile
+    }
+
+    if (unlink(file) == -1){
+      fprintf (stderr, "Error removing File\n");
+      return 1;
+    }
+  }
+
+  return 0;
+}
+
 unsigned long parse_ulong(char *str, int base){
   char *endptr;
   unsigned long val;

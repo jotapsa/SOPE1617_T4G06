@@ -25,20 +25,21 @@ char genGender (){
 }
 
 /*
-  arg - entriesFileDes
+  arg - fileDes
 */
 void *genRequests (void *arg){
+  clock_t t1;
   char *req = malloc (sizeof(char)*27);
   char G;
   unsigned long utilTime;
-  int entriesFileDes = *(int *)arg;
+  info_t *info = (info_t *)arg;
 
   for (unsigned long i=1; i<=nrReq; i++){
     G = genGender();
     utilTime = (rand()%maxTime)+1; //not a uniform distribution
-    sprintf (req, "p%lu %c t%lu\n", i, G, utilTime);
-    //printf ("%s", req);
-    write (entriesFileDes, req, strlen(req));
+    snprintf (req, 27,"p%lu %c t%lu\n", i, G, utilTime);
+    printf ("%s", req);
+    write (info->entriesFileDes, req, strlen(req));
   }
 
   free (req);
@@ -46,11 +47,17 @@ void *genRequests (void *arg){
 
 int main  (int argc, char *argv[], char *envp[]){
 
+  info_t info;
+  clock_t end;
+  info.t0 = clock ();
+
   srand(time(NULL)); //initialize the seed from the current time
-  pid_t pid = getpid();;
-  int rejectsFileDes, entriesFileDes;
+
+  info.pid = getpid();
   char *rejectsFIFOPath = "/tmp/rejeitados";
   char *entriesFIFOPath = "/tmp/entrada";
+  char *registerPath = malloc(15*sizeof(char)); //pid_t is a signed integer
+  snprintf(registerPath, 15, "/tmp/ger.%d", info.pid);
 
   pthread_t tid[2];
 
@@ -70,24 +77,58 @@ int main  (int argc, char *argv[], char *envp[]){
     }
   }
 
+
+
+  if (checkPathREG(registerPath) != 0){
+    exit(1);
+  }
+
+  if ((info.registerFileDes=open(registerPath, O_WRONLY|O_CREAT|O_SYNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH))==-1){
+    fprintf(stderr, "Error opening file %s\n", registerPath);
+    exit (2);
+  }
+
+
   if (createFIFO (rejectsFIFOPath) != 0 || createFIFO (entriesFIFOPath) != 0){
     exit (1);
   }
 
-  //since we dont give the O_NONBLOCK FLAG to open the process must wait until some other process opens the FIFO for reading
-  if ((entriesFileDes=open(entriesFIFOPath, O_WRONLY| O_TRUNC | O_SYNC))==-1){
-    fprintf(stderr, "Error opening file %s\n", entriesFIFOPath);
+  printf("antes de abrir rejeitados\n" );
+
+  if ((info.rejectsFileDes = open (rejectsFIFOPath, O_RDONLY)) == -1){
+    fprintf(stderr, "Error opening file %s\n", rejectsFIFOPath);
     exit (2);
   }
 
-  pthread_create (&tid[0], NULL, genRequests, &entriesFileDes);
+    printf("antes de abrir entradas\n" );
+  //since we dont give the O_NONBLOCK FLAG to open the process must wait until some other process opens the FIFO for reading
+  if ((info.entriesFileDes=open(entriesFIFOPath, O_WRONLY| O_TRUNC | O_SYNC))==-1){
+    fprintf(stderr, "Error opening file %s\n", entriesFIFOPath);
+    exit (2);
+  }
+  printf("antes de criar thread\n" );
+  pthread_create (&tid[0], NULL, genRequests, &info);
 
   pthread_join (tid[0], NULL);
 
-  if (close (entriesFileDes) == -1){
+  if (close (info.entriesFileDes) == -1){
     fprintf(stderr, "Error closing file %s\n", entriesFIFOPath);
     exit (3);
   }
+
+  if (close (info.rejectsFileDes) == -1){
+    fprintf(stderr, "Error closing file %s\n", rejectsFIFOPath);
+    exit (3);
+  }
+
+  if (close (info.registerFileDes) == -1){
+    fprintf(stderr, "Error closing file %s\n", registerPath);
+    exit (3);
+  }
+
+  end = clock(); //fim da medicao de tempo
+
+  printf("Clock:  %4.2Lf s\n", (long double)(end-info.t0)/(CLOCKS_PER_SEC));
 
   return 0;
 }

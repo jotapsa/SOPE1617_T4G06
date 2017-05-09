@@ -8,6 +8,9 @@
 #include <limits.h> //ULONG_MAX
 
 #include "shared.h"
+#include "gerador.h"
+
+#define NUM_THREADS 2
 
 unsigned long nrReq, maxTime;
 
@@ -15,14 +18,22 @@ void print_help_menu (){
     printf ("\nUsage: gerador <nr. pedidos> <max. utilizacao>\n\n");
 }
 
-/*
-  arg - fileDes
-*/
-void *genRequests (void *arg){
-  clock_t t1;
-  request_t req;
-  char *reg = malloc (sizeof(char)*62);
+static inline char *tipToString (tip t){
+  static char *str_tip[] = {"PEDIDO", "REJEITADO", "DESCARTADO"}; //static so we only initialize once
+  return str_tip[t];
+}
+
+void genRegMsg (char * reg, request_t *req, info_t *info, tip t){
+  clock_t t1 = clock ();
   double long elapsedTime=0;
+
+  elapsedTime = ((t1-info->t0) / CLOCKS_PER_SEC)*1000;
+  snprintf (reg, REG_MAXLEN, "%Lf - %d - %lu: %c - %lu - %s\n", elapsedTime, info->pid, req->id, req->gender, req->dur, tipToString(t));
+}
+
+void *genRequests (void *arg){
+  request_t req;
+  char reg[REG_MAXLEN];
   info_t *info = (info_t *)arg;
 
   for (unsigned long i=1; i<=nrReq; i++){
@@ -31,14 +42,33 @@ void *genRequests (void *arg){
     req.dur = (rand()%maxTime)+1; //not a uniform distribution
     write (info->entriesFileDes, &req, sizeof(request_t));
 
-    t1 = clock();
-    elapsedTime = ((t1-info->t0) / CLOCKS_PER_SEC)*1000;
-    snprintf (reg, 62, "%Lf - %d - %lu: %c - %lu - PEDIDO\n", elapsedTime, info->pid, req.id, req.gender, req.dur);
-    printf ("%s", reg);
+    genRegMsg (reg, &req, info, GENERATED);
     write (info->registerFileDes, reg, strlen(reg));
   }
+}
 
-  free (reg);
+void *handleRejects (void *arg){
+  clock_t t1;
+  request_t req;
+  char reg[REG_MAXLEN];
+  info_t *info = (info_t *)arg;
+
+
+  while (read (info->rejectsFileDes, &req, sizeof(request_t))>0){
+    req.denials++;
+    if (req.denials >= 3){
+      genRegMsg (reg, &req, info, DISCARDED);
+      write (info->registerFileDes, reg, strlen(reg));
+    }
+    else{
+      write (info->entriesFileDes, &req, sizeof(request_t));
+
+      genRegMsg (reg, &req, info, REJECTED);
+      write (info->registerFileDes, reg, strlen(reg));
+    }
+
+  }
+
 }
 
 int main  (int argc, char *argv[], char *envp[]){
@@ -55,7 +85,7 @@ int main  (int argc, char *argv[], char *envp[]){
   char *registerPath = malloc(15*sizeof(char)); //pid_t is a signed integer
   snprintf(registerPath, 15, "/tmp/ger.%d", info.pid);
 
-  pthread_t tid[2];
+  pthread_t tid[NUM_THREADS];
 
   if (argc != 3){
     print_help_menu ();
@@ -99,10 +129,13 @@ int main  (int argc, char *argv[], char *envp[]){
     fprintf(stderr, "Error opening file %s\n", entriesFIFOPath);
     exit (2);
   }
-  
-  pthread_create (&tid[0], NULL, genRequests, &info);
 
-  pthread_join (tid[0], NULL);
+  pthread_create (&tid[0], NULL, genRequests, &info);
+  pthread_create (&tid[1], NULL, handleRejects, &info);
+
+  for (int i=0; i<NUM_THREADS; i++){
+    pthread_join (tid[i], NULL);
+  }
 
   if (close (info.entriesFileDes) == -1){
     fprintf(stderr, "Error closing file %s\n", entriesFIFOPath);

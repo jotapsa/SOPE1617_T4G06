@@ -1,6 +1,8 @@
 #ifndef _SHARED_H_
 #define _SHARED_H_
 
+#define REG_MAXLEN 70
+
 typedef struct {
   clock_t t0;
   pid_t pid;

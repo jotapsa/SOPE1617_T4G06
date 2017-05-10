@@ -53,9 +53,7 @@ void *handleRejects (void *arg){
   char reg[REG_MAXLEN];
   info_t *info = (info_t *)arg;
 
-
   while (read (info->rejectsFileDes, &req, sizeof(request_t))>0){
-    req.denials++;
     if (req.denials >= 3){
       genRegMsg (reg, &req, info, DISCARDED);
       write (info->registerFileDes, reg, strlen(reg));
@@ -66,9 +64,7 @@ void *handleRejects (void *arg){
       genRegMsg (reg, &req, info, REJECTED);
       write (info->registerFileDes, reg, strlen(reg));
     }
-
   }
-
 }
 
 int main  (int argc, char *argv[], char *envp[]){
@@ -102,8 +98,6 @@ int main  (int argc, char *argv[], char *envp[]){
       exit (1);
     }
   }
-
-
 
   if (checkPathREG(registerPath) != 0){
     exit(1);

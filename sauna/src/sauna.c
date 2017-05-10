@@ -8,26 +8,50 @@
 #include <pthread.h>
 
 #include "shared.h"
+#include "sauna.h"
 
 pthread_mutex_t mut=PTHREAD_MUTEX_INITIALIZER; // mutex para a s.c.
-int nrPlaces; //variaveis partilhadas
+sauna_t sauna; //variaveis partilhadas
 
 void print_help_menu (){
     printf ("\nUsage: sauna <n. lugares>\n\n");
 }
 
+static inline char *tipToString (tip t){
+  static char *str_tip[] = {"RECEBIDO", "REJEITADO", "SERVIDO"}; //static so we only initialize once
+  return str_tip[t];
+}
+
+void regMsg (char * reg, request_t *req, info_t *info, tip t){
+  clock_t t1 = clock ();
+  double long elapsedTime=0;
+
+  elapsedTime = ((t1-info->t0) / CLOCKS_PER_SEC)*1000;
+  snprintf (reg, REG_MAXLEN, "%Lf - %d - %lu: %c - %lu - %s\n", elapsedTime, info->pid, req->id, req->gender, req->dur, tipToString(t));
+}
+
 void updateSlots (int change){
   pthread_mutex_lock (&mut);
-  nrPlaces += change;
+  sauna.free += change;
   pthread_mutex_unlock (&mut);
+}
+
+
+long long freeSlot (){
+  for (unsigned long i = 0; i<sauna.total; i++){
+    if (sauna.slots[i] != -1){
+      return i;
+    }
+  }
+  return -1;
 }
 
 void *fulfillReq (void *arg){
   struct timespec req;
-  unsigned long milliseconds = *(unsigned long *) arg;
+  thread_info *info = (thread_info *) arg;
 
-  req.tv_sec = milliseconds / 1000;
-  req.tv_nsec = (milliseconds % 1000) * 1000000; //convert the remainder to nsec
+  req.tv_sec = info->dur / 1000;
+  req.tv_nsec = (info->dur % 1000) * 1000000; //convert the remainder to nsec
 
   if (nanosleep(&req, NULL)){
     fprintf(stderr, "Error nanosleep\n");
@@ -50,8 +74,11 @@ int main  (int argc, char *argv[], char *envp[]){
 
   int bytes;
   request_t req;
+  char reg[REG_MAXLEN];
 
-  sauna_t sauna;
+  unsigned long index;
+  pthread_t *tid;
+  thread_info *tid_info;
 
   if (argc != 2){
     print_help_menu ();
@@ -64,8 +91,9 @@ int main  (int argc, char *argv[], char *envp[]){
     }
     sauna.free = sauna.total;
   }
-
-  //pthread_t tid[sauna.total];
+  tid = (pthread_t *) malloc (sizeof(pthread_t)*sauna.total);
+  tid_info = (thread_info *) malloc (sizeof(thread_info)*sauna.total);
+  sauna.slots = (int *) malloc (sizeof(int)*sauna.total);
 
   if (checkPathREG(registerPath) != 0){
     exit(1);
@@ -95,15 +123,34 @@ int main  (int argc, char *argv[], char *envp[]){
   //Read from the ENTRIES FIFO
   while ((bytes = read (info.entriesFileDes, &req, sizeof(request_t)))>0){
     if ((sauna.free == sauna.total) && (sauna.total>0)){
-      //first request
+      //EMPTY SAUNA
       sauna.gender = req.gender;
       sauna.free --;
-      //pthread_create (&tid[], NULL, fulfillReq, &req.dur);
+      index = freeSlot();
+      tid_info[index].index = index;
+      tid_info[index].dur = req.dur;
+      pthread_create (&tid[index], NULL, fulfillReq, &tid_info);
     }
-    else if ((sauna.free<sauna.total) && (sauna.free>0)){
+    else if ((req.gender == sauna.gender) && (sauna.free<sauna.total) && (sauna.free>0)){
       //still slots available
     }
+    else if ((req.gender == sauna.gender) && (sauna.free==0) && (sauna.total>0)){
+      //full sauna
+    }
+    else if ((req.gender != sauna.gender)){
+      //diferent gender
+      req.denials++;
+      write (info.rejectsFileDes, &req, sizeof(request_t));
+
+      regMsg (reg, &req, &info, REJECTED);
+      write (info.registerFileDes, reg, strlen(reg));
+
+    }
     printf ("p%lu %c t%lu\n", req.id, req.gender, req.dur);
+  }
+
+  for (unsigned long i=0; i<sauna.total; i++){
+    pthread_join (tid[i], NULL);
   }
 
   if (close (info.entriesFileDes) == -1){
@@ -120,6 +167,9 @@ int main  (int argc, char *argv[], char *envp[]){
     fprintf(stderr, "Error closing file %s\n", registerPath);
     exit (3);
   }
+
+  free (sauna.slots);
+  free (tid);
 
   end = clock(); //fim da medicao de tempo
 

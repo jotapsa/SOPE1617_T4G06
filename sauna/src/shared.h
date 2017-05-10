@@ -20,6 +20,7 @@ typedef struct {
 
 typedef struct {
   unsigned long total, free;
+  int *slots;
   char gender;
 } sauna_t;
 

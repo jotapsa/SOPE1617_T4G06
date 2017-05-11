@@ -19,8 +19,8 @@ typedef struct {
 } request_t;
 
 typedef struct {
-  unsigned long total, free;
-  int *slots;
+  unsigned long total;
+  unsigned long free;
   char gender;
 } sauna_t;
 

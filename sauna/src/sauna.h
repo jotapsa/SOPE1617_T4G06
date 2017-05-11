@@ -2,7 +2,7 @@
 #define _SAUNA_H_
 
 typedef struct {
-  unsigned long index;
+  int *pipe_fd;
   unsigned long dur;
 } thread_info;
 
@@ -13,5 +13,7 @@ void print_help_menu ();
 static inline char *tipToString (tip t);
 
 void regMsg (char * reg, request_t *req, info_t *info, tip t);
+
+void freeSlot ();
 
 #endif

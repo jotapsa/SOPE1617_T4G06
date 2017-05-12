@@ -10,6 +10,7 @@
 #include "shared.h"
 #include "sauna.h"
 
+pthread_cond_t cvar=PTHREAD_COND_INITIALIZER;
 pthread_mutex_t mut=PTHREAD_MUTEX_INITIALIZER; // mutex para a s.c.
 sauna_t sauna; //variaveis partilhadas
 
@@ -42,6 +43,7 @@ void incrementIndex (unsigned long *i, unsigned long total){
 void freeSlot (){
   pthread_mutex_lock (&mut);
   sauna.free ++;
+  pthread_cond_signal(&cvar);
   pthread_mutex_unlock (&mut);
 }
 
@@ -129,6 +131,9 @@ int main  (int argc, char *argv[], char *envp[]){
 
   //Read from the ENTRIES FIFO
   while (read (info.entriesFileDes, &req, sizeof(request_t))>0){
+    regMsg (reg, &req, &info, RECIEVED);
+    write (info.registerFileDes, reg, strlen(reg));
+
     t[i].pipe_fd = pipe_fd;
     t[i].dur = req.dur;
     pthread_mutex_lock (&mut);
@@ -139,6 +144,9 @@ int main  (int argc, char *argv[], char *envp[]){
       pthread_mutex_unlock (&mut);
       pthread_create (&tid, NULL, fulfillReq, &t[i]);
       incrementIndex (&i, total);
+
+      regMsg (reg, &req, &info, SERVED);
+      write (info.registerFileDes, reg, strlen(reg));
     }
     else if ((req.gender == sauna.gender) && (sauna.free)){
       //still slots available
@@ -146,18 +154,24 @@ int main  (int argc, char *argv[], char *envp[]){
       pthread_mutex_unlock (&mut);
       pthread_create (&tid, NULL, fulfillReq, &t[i]);
       incrementIndex (&i, total);
-      //create thread
+
+      regMsg (reg, &req, &info, SERVED);
+      write (info.registerFileDes, reg, strlen(reg));
     }
     else if ((req.gender == sauna.gender) && (!sauna.free)){
       //full sauna but same gender
-      //wait
-      //sauna.free --;
+      //wait while it's full
+      while (!sauna.free){
+        pthread_cond_wait(&cvar, &mut);
+      }
+      sauna.free --;
       pthread_mutex_unlock (&mut);
-      /*
+
       pthread_create (&tid, NULL, fulfillReq, &t[i]);
       incrementIndex (&i, total);
-      */
-      //create thread;
+
+      regMsg (reg, &req, &info, SERVED);
+      write (info.registerFileDes, reg, strlen(reg));
     }
     else if ((req.gender != sauna.gender)){
       //diferent gender
@@ -175,6 +189,7 @@ int main  (int argc, char *argv[], char *envp[]){
     }
     printf ("p%lu %c t%lu\n", req.id, req.gender, req.dur);
   }
+  printf ("PID - %d", info.pid);
 
   //Wait for all the created threads, reading each tid through a pipe
   while (read(pipe_fd[0], &tid, sizeof(tid))>0){

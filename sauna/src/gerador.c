@@ -128,7 +128,9 @@ int main  (int argc, char *argv[], char *envp[]){
   pthread_create (&tid[1], NULL, handleRejects, &info);
 
   for (int i=0; i<NUM_THREADS; i++){
+    printf ("waiting for thread %d\n", i+1);
     pthread_join (tid[i], NULL);
+    printf ("thread %d done\n", i+1);
   }
 
   if (close (info.entriesFileDes) == -1){

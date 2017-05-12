@@ -1,6 +1,8 @@
 #ifndef _GERADOR_H_
 #define _GERADOR_H_
 
+#define NUM_THREADS 2
+
 typedef struct {
   unsigned long req_gen[2];
   unsigned long req_rej_rec[2];

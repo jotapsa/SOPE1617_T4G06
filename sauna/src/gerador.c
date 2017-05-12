@@ -100,12 +100,16 @@ void *genRequests (void *arg){
     req.id = i;
     req.gender = (rand()%2) ? 'M' : 'F';
     req.dur = (rand()%maxTime)+1; //not a uniform distribution
+    req.denials = 0;
+    req.total_req = nrReq;
     write (info->entriesFileDes, &req, sizeof(request_t));
 
     update_stats (&stats, req, GENERATED);
     genRegMsg (reg, &req, info, GENERATED);
     write (info->registerFileDes, reg, strlen(reg));
   }
+
+  pthread_exit (0);
 }
 
 void *handleRejects (void *arg){
@@ -115,7 +119,7 @@ void *handleRejects (void *arg){
 
   while (read (info->rejectsFileDes, &req, sizeof(request_t))>0){
     update_stats (&stats, req, REJECTED);
-    if (req.denials >= 3){
+    if (req.denials >= MAX_DENIALS){
       update_stats (&stats, req, DISCARDED);
       genRegMsg (reg, &req, info, DISCARDED);
       write (info->registerFileDes, reg, strlen(reg));
@@ -126,6 +130,8 @@ void *handleRejects (void *arg){
       write (info->registerFileDes, reg, strlen(reg));
     }
   }
+
+  pthread_exit (0);
 }
 
 int main  (int argc, char *argv[], char *envp[]){
@@ -141,6 +147,9 @@ int main  (int argc, char *argv[], char *envp[]){
   snprintf(registerPath, 15, "/tmp/ger.%d", info.pid);
 
   pthread_t tid[NUM_THREADS];
+
+  //unsigned long
+  //stats_t stats;
 
   init_stats (&stats);
 

@@ -102,8 +102,10 @@ void freeSlot (){
 
 void *fulfillReq (void *arg){
   struct timespec req;
-  pthread_t tid;
   thread_info *t = (thread_info *) arg;
+
+  pthread_t tid = pthread_self();
+  write(t->pipe_fd[1], &tid, sizeof(pthread_t)); //better write this at the start so the main thread knows to wait for this one
 
   req.tv_sec = t->dur / 1000;
   req.tv_nsec = (t->dur % 1000) * 1000000; //convert the remainder to nsec
@@ -114,10 +116,7 @@ void *fulfillReq (void *arg){
 
   freeSlot ();
 
-  tid = pthread_self();
-  write(t->pipe_fd[1], &tid, sizeof(pthread_t));
-
-  return NULL;
+  pthread_exit (0);
 }
 
 int main  (int argc, char *argv[], char *envp[]){
@@ -135,9 +134,11 @@ int main  (int argc, char *argv[], char *envp[]){
 
   thread_info *t;
   int pipe_fd[2];
-  unsigned long i=0, total;
+  unsigned long i=0, total_slots;
+  unsigned long spawned_threads=0;
   pthread_t tid;
 
+  unsigned long total_served=0;
   stats_t stats;
   init_stats (&stats);
 
@@ -153,7 +154,7 @@ int main  (int argc, char *argv[], char *envp[]){
       exit(1);
     }
     sauna.free = sauna.total;
-    total = sauna.total;
+    total_slots = sauna.total;
   }
   t = malloc (sizeof(thread_info) * sauna.total); //its impossible to be waiting for more than "sauna.total" threads to spawn so we can just give each thread a different instance
   pipe (pipe_fd);
@@ -184,7 +185,7 @@ int main  (int argc, char *argv[], char *envp[]){
   }
 
   //Read from the ENTRIES FIFO
-  while (read (info.entriesFileDes, &req, sizeof(request_t))>0){
+  while ((read (info.entriesFileDes, &req, sizeof(request_t))>0)){
     update_stats (&stats, req, RECIEVED);
     regMsg (reg, &req, &info, RECIEVED);
     write (info.registerFileDes, reg, strlen(reg));
@@ -199,7 +200,9 @@ int main  (int argc, char *argv[], char *envp[]){
       pthread_mutex_unlock (&mut);
       pthread_create (&tid, NULL, fulfillReq, &t[i]);
 
-      incrementIndex (&i, total);
+      spawned_threads++;
+      incrementIndex (&i, total_slots);
+      total_served++;
       update_stats (&stats, req, SERVED);
       regMsg (reg, &req, &info, SERVED);
       write (info.registerFileDes, reg, strlen(reg));
@@ -210,7 +213,9 @@ int main  (int argc, char *argv[], char *envp[]){
       pthread_mutex_unlock (&mut);
       pthread_create (&tid, NULL, fulfillReq, &t[i]);
 
-      incrementIndex (&i, total);
+      spawned_threads++;
+      incrementIndex (&i, total_slots);
+      total_served++;
       update_stats (&stats, req, SERVED);
       regMsg (reg, &req, &info, SERVED);
       write (info.registerFileDes, reg, strlen(reg));
@@ -225,7 +230,9 @@ int main  (int argc, char *argv[], char *envp[]){
       pthread_mutex_unlock (&mut);
       pthread_create (&tid, NULL, fulfillReq, &t[i]);
 
-      incrementIndex (&i, total);
+      spawned_threads++;
+      incrementIndex (&i, total_slots);
+      total_served++;
       update_stats (&stats, req, SERVED);
       regMsg (reg, &req, &info, SERVED);
       write (info.registerFileDes, reg, strlen(reg));
@@ -236,18 +243,25 @@ int main  (int argc, char *argv[], char *envp[]){
       req.denials++;
       write (info.rejectsFileDes, &req, sizeof(request_t));
 
+      if (req.denials >= MAX_DENIALS){
+        total_served++;
+      }
       update_stats (&stats, req, REJECTED);
       regMsg (reg, &req, &info, REJECTED);
       write (info.registerFileDes, reg, strlen(reg));
-
     }
     else {
       pthread_mutex_unlock (&mut); //just making sure
       printf ("ERRO\n");
     }
+    
+    if (total_served >= req.total_req){
+      break;
+    }
   }
   //Wait for all the created threads, reading each tid through a pipe
-  while (read(pipe_fd[0], &tid, sizeof(tid))>0){
+  for (i=0; i<spawned_threads; i++){
+    read(pipe_fd[0], &tid, sizeof(pthread_t));
     pthread_join(tid, NULL);
   }
 

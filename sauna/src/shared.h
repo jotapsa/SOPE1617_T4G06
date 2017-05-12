@@ -3,6 +3,8 @@
 
 #define REG_MAXLEN 70
 
+#define MAX_DENIALS 3
+
 #define MILLISECONDS_PER_SECOND 1000
 #define NANOSECONDS_PER_MILLISECOND 1000000
 
@@ -22,6 +24,7 @@ typedef struct {
   char gender;
   unsigned long dur;
   int denials;
+  unsigned long total_req;
 } request_t;
 
 typedef struct {

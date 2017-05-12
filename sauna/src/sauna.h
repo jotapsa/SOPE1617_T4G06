@@ -20,7 +20,11 @@ static inline char *tipToString (tip t);
 
 void regMsg (char * reg, request_t *req, info_t *info, tip t);
 
+void init_stats (stats_t *stats);
+
 void update_stats (stats_t *stats, request_t req, tip t);
+
+void print_stats (stats_t *stats);
 
 void freeSlot ();
 

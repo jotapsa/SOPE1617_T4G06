@@ -43,38 +43,54 @@ void incrementIndex (unsigned long *i, unsigned long total){
   }
 }
 
+void init_stats (stats_t *stats){
+  stats->req_rec[MALE]=0;
+  stats->req_rec[FEMALE]=0;
+
+  stats->req_rej[MALE]=0;
+  stats->req_rej[FEMALE]=0;
+
+  stats->req_serv[MALE]=0;
+  stats->req_serv[FEMALE]=0;
+}
+
 void update_stats (stats_t *stats, request_t req, tip t){
   switch (t){
     case RECIEVED:{
-      if (req.gender == 'M'){
+      if (req.gender == 'M')
         stats->req_rec[MALE]++;
-      }
-      else{
+      else
         stats->req_rec[FEMALE]++;
-      }
     }
     break;
     case REJECTED:{
-      if (req.gender == 'M'){
+      if (req.gender == 'M')
         stats->req_rej[MALE]++;
-      }
-      else{
+      else
         stats->req_rej[FEMALE]++;
-      }
     }
     break;
     case SERVED:{
-      if (req.gender == 'M'){
+      if (req.gender == 'M')
         stats->req_serv[MALE]++;
-      }
-      else{
+      else
         stats->req_serv[FEMALE]++;
-      }
     }
     break;
     default:
     break;
   }
+}
+
+void print_stats (stats_t *stats){
+  printf("A sauna:\n");
+  printf("Recebeu um total de %lu pedidos\n", stats->req_rec[MALE]+stats->req_rec[FEMALE]);
+  printf("\t%lu [M] e %lu [F]\n", stats->req_rec[MALE], stats->req_rec[FEMALE]);
+  printf("Rejeitou um total de %lu pedidos\n", stats->req_rej[MALE]+stats->req_rej[FEMALE]);
+  printf("\t%lu [M] e %lu [F]\n", stats->req_rej[MALE], stats->req_rej[FEMALE]);
+  printf("Serviu um total de %lu pedidos\n", stats->req_serv[MALE]+stats->req_serv[FEMALE]);
+  printf("\t%lu [M] e %lu [F]\n", stats->req_serv[MALE], stats->req_serv[FEMALE]);
+  printf("******************FIM*****************\n");
 }
 
 void freeSlot (){
@@ -123,6 +139,7 @@ int main  (int argc, char *argv[], char *envp[]){
   pthread_t tid;
 
   stats_t stats;
+  init_stats (&stats);
 
   if (argc != 2){
     print_help_menu ();
@@ -262,7 +279,7 @@ int main  (int argc, char *argv[], char *envp[]){
 
   free (t);
 
-  //print_stats (stats);
+  print_stats (&stats);
 
   return 0;
 }

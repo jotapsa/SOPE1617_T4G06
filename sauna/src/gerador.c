@@ -35,6 +35,17 @@ void genRegMsg (char * reg, request_t *req, info_t *info, tip t){
   printf ("%s",reg);
 }
 
+void init_stats (stats_t *stats){
+  stats->req_gen[MALE]=0;
+  stats->req_gen[FEMALE]=0;
+
+  stats->req_rej_rec[MALE]=0;
+  stats->req_rej_rec[FEMALE]=0;
+
+  stats->req_rej_dis[MALE]=0;
+  stats->req_rej_dis[FEMALE]=0;
+}
+
 void update_stats (stats_t *stats, request_t req, tip t){
   switch (t){
     case GENERATED:{
@@ -69,6 +80,17 @@ void update_stats (stats_t *stats, request_t req, tip t){
   }
 }
 
+void print_stats (stats_t *stats){
+  printf("O gerador:\n");
+  printf("Gerou um total de %lu pedidos\n", stats->req_gen[MALE]+stats->req_gen[FEMALE]);
+  printf("\t%lu [M] e %lu [F]\n", stats->req_gen[MALE], stats->req_gen[FEMALE]);
+  printf("Recebeu um total de %lu pedidos rejeitados\n", stats->req_rej_rec[MALE]+stats->req_rej_rec[FEMALE]);
+  printf("\t%lu [M] e %lu [F]\n", stats->req_rej_rec[MALE], stats->req_rej_rec[FEMALE]);
+  printf("Descartou um total de %lu pedidos\n", stats->req_rej_dis[MALE]+stats->req_rej_dis[FEMALE]);
+  printf("\t%lu [M] e %lu [F]\n", stats->req_rej_dis[MALE], stats->req_rej_dis[FEMALE]);
+  printf("******************FIM*****************\n");
+}
+
 void *genRequests (void *arg){
   request_t req;
   char reg[REG_MAXLEN];
@@ -92,6 +114,7 @@ void *handleRejects (void *arg){
   info_t *info = (info_t *)arg;
 
   while (read (info->rejectsFileDes, &req, sizeof(request_t))>0){
+    update_stats (&stats, req, REJECTED);
     if (req.denials >= 3){
       update_stats (&stats, req, DISCARDED);
       genRegMsg (reg, &req, info, DISCARDED);
@@ -99,7 +122,6 @@ void *handleRejects (void *arg){
     }
     else{
       write (info->entriesFileDes, &req, sizeof(request_t));
-      update_stats (&stats, req, DISCARDED);
       genRegMsg (reg, &req, info, REJECTED);
       write (info->registerFileDes, reg, strlen(reg));
     }
@@ -120,7 +142,8 @@ int main  (int argc, char *argv[], char *envp[]){
 
   pthread_t tid[NUM_THREADS];
 
-  stats_t stats;
+  init_stats (&stats);
+
 
   if (argc != 3){
     print_help_menu ();
@@ -185,7 +208,7 @@ int main  (int argc, char *argv[], char *envp[]){
     exit (3);
   }
 
-  //estatisticas
+  print_stats (&stats);
 
   return 0;
 }

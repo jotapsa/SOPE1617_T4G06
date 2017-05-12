@@ -24,11 +24,14 @@ static inline char *tipToString (tip t){
 }
 
 void regMsg (char * reg, request_t *req, info_t *info, tip t){
-  clock_t t1 = clock ();
+  struct timespec t1;
+  clock_gettime(CLOCK_MONOTONIC, &t1);
   double long elapsedTime=0;
 
-  elapsedTime = ((t1-info->t0) / CLOCKS_PER_SEC)*1000;
+  elapsedTime = ((t1.tv_sec - info->t0.tv_sec)*MILLISECONDS_PER_SECOND)
+    + ((t1.tv_nsec - info->t0.tv_nsec )/NANOSECONDS_PER_MILLISECOND);
   snprintf (reg, REG_MAXLEN, "%Lf - %d - %lu: %c - %lu - %s\n", elapsedTime, info->pid, req->id, req->gender, req->dur, tipToString(t));
+  printf ("%s",reg);
 }
 
 void incrementIndex (unsigned long *i, unsigned long total){
@@ -69,9 +72,7 @@ void *fulfillReq (void *arg){
 
 int main  (int argc, char *argv[], char *envp[]){
   info_t info;
-  info.t0 = clock ();
-
-  clock_t end;
+  clock_gettime(CLOCK_MONOTONIC, &info.t0);
 
   info.pid = getpid();
   char *rejectsFIFOPath = "/tmp/rejeitados";
@@ -187,10 +188,7 @@ int main  (int argc, char *argv[], char *envp[]){
       pthread_mutex_unlock (&mut); //just making sure
       printf ("ERRO\n");
     }
-    printf ("p%lu %c t%lu\n", req.id, req.gender, req.dur);
   }
-  printf ("PID - %d", info.pid);
-
   //Wait for all the created threads, reading each tid through a pipe
   while (read(pipe_fd[0], &tid, sizeof(tid))>0){
     pthread_join(tid, NULL);
@@ -224,10 +222,7 @@ int main  (int argc, char *argv[], char *envp[]){
 
   free (t);
 
-
-  end = clock(); //fim da medicao de tempo
-
-  printf("Clock:  %4.2Lf s\n", (long double)(end-info.t0)/(CLOCKS_PER_SEC));
+  //estatisticas
 
   return 0;
 }

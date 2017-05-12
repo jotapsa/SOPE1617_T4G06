@@ -24,11 +24,14 @@ static inline char *tipToString (tip t){
 }
 
 void genRegMsg (char * reg, request_t *req, info_t *info, tip t){
-  clock_t t1 = clock ();
+  struct timespec t1;
+  clock_gettime(CLOCK_MONOTONIC, &t1);
   double long elapsedTime=0;
 
-  elapsedTime = ((t1-info->t0) / CLOCKS_PER_SEC)*1000;
+  elapsedTime = ((t1.tv_sec - info->t0.tv_sec)*MILLISECONDS_PER_SECOND)
+  + ((t1.tv_nsec - info->t0.tv_nsec )/NANOSECONDS_PER_MILLISECOND);
   snprintf (reg, REG_MAXLEN, "%Lf - %d - %lu: %c - %lu - %s\n", elapsedTime, info->pid, req->id, req->gender, req->dur, tipToString(t));
+  printf ("%s",reg);
 }
 
 void *genRequests (void *arg){
@@ -48,7 +51,6 @@ void *genRequests (void *arg){
 }
 
 void *handleRejects (void *arg){
-  clock_t t1;
   request_t req;
   char reg[REG_MAXLEN];
   info_t *info = (info_t *)arg;
@@ -69,9 +71,7 @@ void *handleRejects (void *arg){
 
 int main  (int argc, char *argv[], char *envp[]){
   info_t info;
-  info.t0 = clock ();
-
-  clock_t end;
+  clock_gettime(CLOCK_MONOTONIC, &info.t0);
 
   srand(time(NULL)); //initialize the seed from the current time
 
@@ -128,9 +128,7 @@ int main  (int argc, char *argv[], char *envp[]){
   pthread_create (&tid[1], NULL, handleRejects, &info);
 
   for (int i=0; i<NUM_THREADS; i++){
-    printf ("waiting for thread %d\n", i+1);
     pthread_join (tid[i], NULL);
-    printf ("thread %d done\n", i+1);
   }
 
   if (close (info.entriesFileDes) == -1){
@@ -148,9 +146,7 @@ int main  (int argc, char *argv[], char *envp[]){
     exit (3);
   }
 
-  end = clock(); //fim da medicao de tempo
-
-  printf("Clock:  %4.2Lf s\n", (long double)(end-info.t0)/(CLOCKS_PER_SEC));
+  //estatisticas
 
   return 0;
 }

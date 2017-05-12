@@ -2,9 +2,11 @@
 #define _SHARED_H_
 
 #define REG_MAXLEN 70
+#define MILLISECONDS_PER_SECOND 1000
+#define NANOSECONDS_PER_MILLISECOND 1000000
 
 typedef struct {
-  clock_t t0;
+  struct timespec t0;
   pid_t pid;
   int rejectsFileDes;
   int entriesFileDes;

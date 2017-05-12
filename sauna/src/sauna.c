@@ -43,6 +43,40 @@ void incrementIndex (unsigned long *i, unsigned long total){
   }
 }
 
+void update_stats (stats_t *stats, request_t req, tip t){
+  switch (t){
+    case RECIEVED:{
+      if (req.gender == 'M'){
+        stats->req_rec[MALE]++;
+      }
+      else{
+        stats->req_rec[FEMALE]++;
+      }
+    }
+    break;
+    case REJECTED:{
+      if (req.gender == 'M'){
+        stats->req_rej[MALE]++;
+      }
+      else{
+        stats->req_rej[FEMALE]++;
+      }
+    }
+    break;
+    case SERVED:{
+      if (req.gender == 'M'){
+        stats->req_serv[MALE]++;
+      }
+      else{
+        stats->req_serv[FEMALE]++;
+      }
+    }
+    break;
+    default:
+    break;
+  }
+}
+
 void freeSlot (){
   pthread_mutex_lock (&mut);
   sauna.free ++;
@@ -88,6 +122,8 @@ int main  (int argc, char *argv[], char *envp[]){
   unsigned long i=0, total;
   pthread_t tid;
 
+  stats_t stats;
+
   if (argc != 2){
     print_help_menu ();
     exit (0);
@@ -132,6 +168,7 @@ int main  (int argc, char *argv[], char *envp[]){
 
   //Read from the ENTRIES FIFO
   while (read (info.entriesFileDes, &req, sizeof(request_t))>0){
+    update_stats (&stats, req, RECIEVED);
     regMsg (reg, &req, &info, RECIEVED);
     write (info.registerFileDes, reg, strlen(reg));
 
@@ -144,8 +181,9 @@ int main  (int argc, char *argv[], char *envp[]){
       sauna.free --;
       pthread_mutex_unlock (&mut);
       pthread_create (&tid, NULL, fulfillReq, &t[i]);
-      incrementIndex (&i, total);
 
+      incrementIndex (&i, total);
+      update_stats (&stats, req, SERVED);
       regMsg (reg, &req, &info, SERVED);
       write (info.registerFileDes, reg, strlen(reg));
     }
@@ -154,8 +192,9 @@ int main  (int argc, char *argv[], char *envp[]){
       sauna.free --;
       pthread_mutex_unlock (&mut);
       pthread_create (&tid, NULL, fulfillReq, &t[i]);
-      incrementIndex (&i, total);
 
+      incrementIndex (&i, total);
+      update_stats (&stats, req, SERVED);
       regMsg (reg, &req, &info, SERVED);
       write (info.registerFileDes, reg, strlen(reg));
     }
@@ -167,10 +206,10 @@ int main  (int argc, char *argv[], char *envp[]){
       }
       sauna.free --;
       pthread_mutex_unlock (&mut);
-
       pthread_create (&tid, NULL, fulfillReq, &t[i]);
-      incrementIndex (&i, total);
 
+      incrementIndex (&i, total);
+      update_stats (&stats, req, SERVED);
       regMsg (reg, &req, &info, SERVED);
       write (info.registerFileDes, reg, strlen(reg));
     }
@@ -180,6 +219,7 @@ int main  (int argc, char *argv[], char *envp[]){
       req.denials++;
       write (info.rejectsFileDes, &req, sizeof(request_t));
 
+      update_stats (&stats, req, REJECTED);
       regMsg (reg, &req, &info, REJECTED);
       write (info.registerFileDes, reg, strlen(reg));
 
@@ -222,7 +262,7 @@ int main  (int argc, char *argv[], char *envp[]){
 
   free (t);
 
-  //estatisticas
+  //print_stats (stats);
 
   return 0;
 }

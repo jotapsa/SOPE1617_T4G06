@@ -2,8 +2,12 @@
 #define _SHARED_H_
 
 #define REG_MAXLEN 70
+
 #define MILLISECONDS_PER_SECOND 1000
 #define NANOSECONDS_PER_MILLISECOND 1000000
+
+#define MALE 0
+#define FEMALE 1
 
 typedef struct {
   struct timespec t0;

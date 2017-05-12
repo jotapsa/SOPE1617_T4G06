@@ -13,6 +13,7 @@
 #define NUM_THREADS 2
 
 unsigned long nrReq, maxTime;
+stats_t stats;
 
 void print_help_menu (){
     printf ("\nUsage: gerador <nr. pedidos> <max. utilizacao>\n\n");
@@ -34,6 +35,40 @@ void genRegMsg (char * reg, request_t *req, info_t *info, tip t){
   printf ("%s",reg);
 }
 
+void update_stats (stats_t *stats, request_t req, tip t){
+  switch (t){
+    case GENERATED:{
+      if (req.gender == 'M'){
+        stats->req_gen[MALE]++;
+      }
+      else{
+        stats->req_gen[FEMALE]++;
+      }
+    }
+    break;
+    case REJECTED:{
+      if (req.gender == 'M'){
+        stats->req_rej_rec[MALE]++;
+      }
+      else{
+        stats->req_rej_rec[FEMALE]++;
+      }
+    }
+    break;
+    case DISCARDED:{
+      if (req.gender == 'M'){
+        stats->req_rej_dis[MALE]++;
+      }
+      else{
+        stats->req_rej_dis[FEMALE]++;
+      }
+    }
+    break;
+    default:
+    break;
+  }
+}
+
 void *genRequests (void *arg){
   request_t req;
   char reg[REG_MAXLEN];
@@ -45,6 +80,7 @@ void *genRequests (void *arg){
     req.dur = (rand()%maxTime)+1; //not a uniform distribution
     write (info->entriesFileDes, &req, sizeof(request_t));
 
+    update_stats (&stats, req, GENERATED);
     genRegMsg (reg, &req, info, GENERATED);
     write (info->registerFileDes, reg, strlen(reg));
   }
@@ -57,12 +93,13 @@ void *handleRejects (void *arg){
 
   while (read (info->rejectsFileDes, &req, sizeof(request_t))>0){
     if (req.denials >= 3){
+      update_stats (&stats, req, DISCARDED);
       genRegMsg (reg, &req, info, DISCARDED);
       write (info->registerFileDes, reg, strlen(reg));
     }
     else{
       write (info->entriesFileDes, &req, sizeof(request_t));
-
+      update_stats (&stats, req, DISCARDED);
       genRegMsg (reg, &req, info, REJECTED);
       write (info->registerFileDes, reg, strlen(reg));
     }
@@ -82,6 +119,8 @@ int main  (int argc, char *argv[], char *envp[]){
   snprintf(registerPath, 15, "/tmp/ger.%d", info.pid);
 
   pthread_t tid[NUM_THREADS];
+
+  stats_t stats;
 
   if (argc != 3){
     print_help_menu ();

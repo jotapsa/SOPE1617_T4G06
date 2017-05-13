@@ -1,0 +1,10 @@
+Para compilar tanto o programa gerador como o programa sauna basta, no mesmo
+diretorio que o makefile, abrir um terminal e escrever make ou make all.
+
+Para invocar o programa gerador basta usar
+./gerador.out
+O que vai provocar o programa gerador a devolver informações sobre o seu metodo
+de utilização,
+gerador <nr. pedidos> <max. utilizacao>
+
+Assim, podemos usar ./gerador.out 20 20

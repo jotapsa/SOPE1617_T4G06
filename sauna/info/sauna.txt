@@ -1,0 +1,2 @@
+Para compilar tanto o programa gerador como o programa sauna basta, no mesmo
+diretorio que o makefile, abrir um terminal e escrever make ou make all.

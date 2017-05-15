@@ -1,2 +1,41 @@
-Para compilar tanto o programa gerador como o programa sauna basta, no mesmo
+Para compilar tanto o programa gerador como o programa sauna, basta no mesmo
 diretorio que o makefile, abrir um terminal e escrever make ou make all.
+
+É indifirente iniciar primeiro o programa gerador ou a sauna.
+
+Para invocar o programa sauna basta usar
+./sauna.out
+O que vai provocar o programa sauna a devolver informações sobre o seu método
+de utilização,
+sauna <n. lugares>
+
+Assim, podemos usar ./sauna 5
+O que vai iniciar a sauna com 5 lugares.
+
+No fim da execução o programa imprime a estatística como pedido no enunciado.
+
+A sauna:
+Recebeu um total de 48 pedidos
+	6 [M] e 42 [F]
+Rejeitou um total de 42 pedidos
+	0 [M] e 42 [F]
+Serviu um total de 6 pedidos
+	6 [M] e 0 [F]
+
+E a localização do ficheiro para o qual foram "enviadas" as mensagens de registo:
+
+For more details: /tmp/bal.6727
+
+Aqui ficam algumas mensagens de registo (tiradas de /tmp/bal.6727):
+
+3064.000000 - 6727 - 14: F - 20 - REJEITADO
+3064.000000 - 6727 - 15: M - 5 - RECEBIDO
+3064.000000 - 6727 - 15: M - 5 - SERVIDO
+3064.000000 - 6727 - 16: F - 7 - RECEBIDO
+3064.000000 - 6727 - 16: F - 7 - REJEITADO
+3064.000000 - 6727 - 17: F - 13 - RECEBIDO
+3064.000000 - 6727 - 17: F - 13 - REJEITADO
+3064.000000 - 6727 - 18: M - 7 - RECEBIDO
+3069.000000 - 6727 - 18: M - 7 - SERVIDO
+3069.000000 - 6727 - 19: F - 14 - RECEBIDO
+3069.000000 - 6727 - 19: F - 14 - REJEITADO

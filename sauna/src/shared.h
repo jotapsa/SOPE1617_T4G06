@@ -1,6 +1,7 @@
 #ifndef _SHARED_H_
 #define _SHARED_H_
 
+#define REGFILE_MAXLEN 15
 #define REG_MAXLEN 70
 
 #define MAX_DENIALS 3

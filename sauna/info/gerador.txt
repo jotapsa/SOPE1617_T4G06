@@ -1,10 +1,52 @@
-Para compilar tanto o programa gerador como o programa sauna basta, no mesmo
-diretorio que o makefile, abrir um terminal e escrever make ou make all.
+Para compilar tanto o programa gerador como o programa sauna, basta no mesmo
+diretorio que o makefile abrir um terminal e escrever make ou make all.
+
+É indifirente iniciar primeiro o programa gerador ou a sauna.
 
 Para invocar o programa gerador basta usar
 ./gerador.out
-O que vai provocar o programa gerador a devolver informações sobre o seu metodo
+O que vai provocar o programa gerador a devolver informações sobre o seu método
 de utilização,
 gerador <nr. pedidos> <max. utilizacao>
 
 Assim, podemos usar ./gerador.out 20 20
+O que vai iniciar o gerador de maneira a gerar 20 pedidos em que os tempos desses pedidos
+estarão no intervalo [1,20](ms).
+
+No fim da execução o programa imprime a estatística como pedido no enunciado.
+
+O gerador:
+Gerou um total de 20 pedidos
+	6 [M] e 14 [F]
+Recebeu um total de 42 pedidos rejeitados
+	0 [M] e 42 [F]
+Descartou um total de 14 pedidos
+	0 [M] e 14 [F]
+
+E a localização do ficheiro para o qual foram "enviadas" as mensagens de registo:
+
+For more details: /tmp/ger.6729
+
+Aqui ficam algumas mensagens de registo (tiradas de /tmp/ger.6729):
+
+0.000000 - 6729 - 17: F - 13 - PEDIDO
+0.000000 - 6729 - 18: M - 7 - PEDIDO
+0.000000 - 6729 - 19: F - 14 - PEDIDO
+0.000000 - 6729 - 20: F - 3 - PEDIDO
+0.000000 - 6729 - 4: F - 11 - REJEITADO
+0.000000 - 6729 - 5: F - 9 - REJEITADO
+0.000000 - 6729 - 6: F - 15 - REJEITADO
+0.000000 - 6729 - 7: F - 12 - REJEITADO
+0.000000 - 6729 - 8: F - 13 - REJEITADO
+0.000000 - 6729 - 9: F - 2 - REJEITADO
+0.000000 - 6729 - 11: F - 11 - REJEITADO
+0.000000 - 6729 - 12: F - 14 - REJEITADO
+0.000000 - 6729 - 13: F - 20 - REJEITADO
+0.000000 - 6729 - 14: F - 20 - REJEITADO
+0.000000 - 6729 - 16: F - 7 - REJEITADO
+0.000000 - 6729 - 17: F - 13 - REJEITADO
+5.000000 - 6729 - 19: F - 14 - REJEITADO
+5.000000 - 6729 - 20: F - 3 - REJEITADO
+5.000000 - 6729 - 4: F - 11 - REJEITADO
+5.000000 - 6729 - 5: F - 9 - REJEITADO
+5.000000 - 6729 - 6: F - 15 - REJEITADO

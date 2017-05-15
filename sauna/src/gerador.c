@@ -12,6 +12,7 @@
 
 #define NUM_THREADS 2
 
+/*variaveis partilhadas, mas nao causam RC*/
 unsigned long nrReq, maxTime;
 stats_t stats;
 
@@ -32,7 +33,7 @@ void genRegMsg (char * reg, request_t *req, info_t *info, tip t){
   elapsedTime = ((t1.tv_sec - info->t0.tv_sec)*MILLISECONDS_PER_SECOND)
   + ((t1.tv_nsec - info->t0.tv_nsec )/NANOSECONDS_PER_MILLISECOND);
   snprintf (reg, REG_MAXLEN, "%Lf - %d - %lu: %c - %lu - %s\n", elapsedTime, info->pid, req->id, req->gender, req->dur, tipToString(t));
-  printf ("%s",reg);
+  //printf ("%s",reg); //Uncomment to print REGISTER message
 }
 
 void init_stats (stats_t *stats){
@@ -88,7 +89,6 @@ void print_stats (stats_t *stats){
   printf("\t%lu [M] e %lu [F]\n", stats->req_rej_rec[MALE], stats->req_rej_rec[FEMALE]);
   printf("Descartou um total de %lu pedidos\n", stats->req_rej_dis[MALE]+stats->req_rej_dis[FEMALE]);
   printf("\t%lu [M] e %lu [F]\n", stats->req_rej_dis[MALE], stats->req_rej_dis[FEMALE]);
-  printf("******************FIM*****************\n");
 }
 
 void *genRequests (void *arg){
@@ -143,13 +143,10 @@ int main  (int argc, char *argv[], char *envp[]){
   info.pid = getpid();
   char *rejectsFIFOPath = "/tmp/rejeitados";
   char *entriesFIFOPath = "/tmp/entrada";
-  char *registerPath = malloc(15*sizeof(char)); //pid_t is a signed integer
-  snprintf(registerPath, 15, "/tmp/ger.%d", info.pid);
+  char registerPath[REGFILE_MAXLEN]; //pid_t is a signed integer
+  snprintf(registerPath, REGFILE_MAXLEN, "/tmp/ger.%d", info.pid);
 
   pthread_t tid[NUM_THREADS];
-
-  //unsigned long
-  //stats_t stats;
 
   init_stats (&stats);
 
@@ -218,6 +215,8 @@ int main  (int argc, char *argv[], char *envp[]){
   }
 
   print_stats (&stats);
+  printf ("\nFor more details: %s\n", registerPath);
+  printf("******************FIM*****************\n");
 
   return 0;
 }

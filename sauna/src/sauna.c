@@ -31,7 +31,7 @@ void regMsg (char * reg, request_t *req, info_t *info, tip t){
   elapsedTime = ((t1.tv_sec - info->t0.tv_sec)*MILLISECONDS_PER_SECOND)
     + ((t1.tv_nsec - info->t0.tv_nsec )/NANOSECONDS_PER_MILLISECOND);
   snprintf (reg, REG_MAXLEN, "%Lf - %d - %lu: %c - %lu - %s\n", elapsedTime, info->pid, req->id, req->gender, req->dur, tipToString(t));
-  printf ("%s",reg);
+  //printf ("%s",reg); //Uncomment to print REGISTER message
 }
 
 void incrementIndex (unsigned long *i, unsigned long total){
@@ -90,7 +90,6 @@ void print_stats (stats_t *stats){
   printf("\t%lu [M] e %lu [F]\n", stats->req_rej[MALE], stats->req_rej[FEMALE]);
   printf("Serviu um total de %lu pedidos\n", stats->req_serv[MALE]+stats->req_serv[FEMALE]);
   printf("\t%lu [M] e %lu [F]\n", stats->req_serv[MALE], stats->req_serv[FEMALE]);
-  printf("******************FIM*****************\n");
 }
 
 void freeSlot (){
@@ -126,8 +125,8 @@ int main  (int argc, char *argv[], char *envp[]){
   info.pid = getpid();
   char *rejectsFIFOPath = "/tmp/rejeitados";
   char *entriesFIFOPath = "/tmp/entrada";
-  char *registerPath = malloc(15*sizeof(char)); //pid_t is a signed integer
-  snprintf(registerPath, 15, "/tmp/bal.%d", info.pid);
+  char registerPath[REGFILE_MAXLEN]; //pid_t is a signed integer
+  snprintf(registerPath, REGFILE_MAXLEN, "/tmp/bal.%d", info.pid);
 
   request_t req;
   char reg[REG_MAXLEN];
@@ -254,11 +253,13 @@ int main  (int argc, char *argv[], char *envp[]){
       pthread_mutex_unlock (&mut); //just making sure
       printf ("ERRO\n");
     }
-    
+
+    //have we served every request ?
     if (total_served >= req.total_req){
       break;
     }
   }
+
   //Wait for all the created threads, reading each tid through a pipe
   for (i=0; i<spawned_threads; i++){
     read(pipe_fd[0], &tid, sizeof(pthread_t));
@@ -294,6 +295,8 @@ int main  (int argc, char *argv[], char *envp[]){
   free (t);
 
   print_stats (&stats);
+  printf ("\nFor more details: %s\n", registerPath);
+  printf("******************FIM*****************\n");
 
   return 0;
 }

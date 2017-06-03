@@ -1,0 +1,2 @@
+# SOPE1617_T4G06
+SOPE 2016/17 Class Projects @ FEUP
